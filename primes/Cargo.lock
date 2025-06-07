@@ -40,6 +40,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
+ "rk-primes",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -73,6 +74,11 @@ checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "rk-primes"
+version = "0.1.0"
+source = "git+https://github.com/jeffs/rust-kart#e9b3714c9ff9b01baaa80020844f8fd56bee36e0"
 
 [[package]]
 name = "rustversion"

@@ -45,20 +45,23 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
         .dyn_cast::<CanvasRenderingContext2d>()
 }
 
-/// TODO: Use prime factoring from Rust Kart. Profile.
-fn prime_factor(mut value: u32) -> Vec<u32> {
+fn prime_factor(mut n: u32) -> Vec<u32> {
     let mut powers = Vec::new();
-    let mut factor = 2;
-    while factor <= value {
-        let mut power = 0;
-        while value % factor == 0 {
-            power += 1;
-            value /= factor;
-        }
-        powers.push(power);
-        factor += 1;
+    if n < 2 {
+        return powers;
     }
-    powers
+    for p in rk_primes::Sieve::default().primes() {
+        let mut e = 0;
+        while n % p == 0 {
+            n /= p;
+            e += 1;
+        }
+        powers.push(e);
+        if n == 1 {
+            return powers;
+        }
+    }
+    unreachable!()
 }
 
 /// Returns the `x` and `h` parameters Canvas `clear_rect` and `fill_rect`.  I
