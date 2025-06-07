@@ -8,10 +8,7 @@
 //! # TODO
 //!
 //! * [] Add an FPS counter
-//! * [] Buffer grid lines in an off-screen canvas
-//!   - <https://web.dev/articles/canvas-performance>
 //! * [] Disable transparency of the canvas
-//!   - Or, use a static image beneath the canvas
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
@@ -25,7 +22,6 @@ use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
 const CELL_SIZE: u32 = 12;
-const GRID_COLOR: &str = "#111";
 const DEAD_COLOR: &str = "#333";
 const LIVE_COLOR: &str = "#CCC";
 
@@ -137,8 +133,6 @@ fn new_canvas(document: &Document, size: RectangleSize) -> Result<HtmlCanvasElem
         .create_element("canvas")?
         .dyn_cast::<HtmlCanvasElement>()?;
 
-    canvas.set_class_name("life__canvas");
-
     // Leave room for a 1px border around each cell.
     canvas.set_width((CELL_SIZE + 1) * size.width + 1);
     canvas.set_height((CELL_SIZE + 1) * size.height + 1);
@@ -148,47 +142,9 @@ fn new_canvas(document: &Document, size: RectangleSize) -> Result<HtmlCanvasElem
 
 fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
     canvas
-        .get_context("2d")?
+        .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
         .ok_or(Error::Str("canvas should have 2d context"))?
         .dyn_cast::<CanvasRenderingContext2d>()
-}
-
-fn draw_grid(context: &CanvasRenderingContext2d, RectangleSize { width, height }: RectangleSize) {
-    context.begin_path();
-    context.set_stroke_style_str(GRID_COLOR);
-
-    // Vertical lines.
-    for i in 0..=width {
-        let x = (i * (CELL_SIZE + 1) + 1).into();
-        context.move_to(x, 0.0);
-        context.line_to(x, ((CELL_SIZE + 1) * height + 1).into());
-    }
-
-    // Horizontal lines.
-    for j in 0..=width {
-        let y = (j * (CELL_SIZE + 1) + 1).into();
-        context.move_to(0.0, y);
-        context.line_to(((CELL_SIZE + 1) * width + 1).into(), y);
-    }
-
-    context.stroke();
-}
-
-struct Grid {
-    canvas: HtmlCanvasElement,
-}
-
-impl Grid {
-    fn new(document: &Document, size: RectangleSize) -> Result<Grid> {
-        let canvas = new_canvas(document, size)?;
-        let context = get_context(&canvas)?;
-        draw_grid(&context, size);
-        Ok(Grid { canvas })
-    }
-
-    fn root(&self) -> &HtmlCanvasElement {
-        &self.canvas
-    }
 }
 
 /// TODO: Draw all the dead cells, then the live cells, to avoid gratuitous
@@ -235,13 +191,12 @@ impl Chart {
             height: 20,
         };
 
-        let grid = Grid::new(&system.document, size)?;
         let canvas = new_canvas(&system.document, size)?;
         let context = get_context(&canvas)?;
 
         let root = system.document.create_element("div")?;
         root.set_class_name("life");
-        root.append_with_node_3(&title, grid.root(), &canvas)?;
+        root.append_with_node_2(&title, &canvas)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
