@@ -146,6 +146,13 @@ fn new_canvas(document: &Document, size: RectangleSize) -> Result<HtmlCanvasElem
     Ok(canvas)
 }
 
+fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
+    canvas
+        .get_context("2d")?
+        .ok_or(Error::Str("canvas should have 2d context"))?
+        .dyn_cast::<CanvasRenderingContext2d>()
+}
+
 fn draw_grid(context: &CanvasRenderingContext2d, RectangleSize { width, height }: RectangleSize) {
     context.begin_path();
     context.set_stroke_style_str(GRID_COLOR);
@@ -165,6 +172,23 @@ fn draw_grid(context: &CanvasRenderingContext2d, RectangleSize { width, height }
     }
 
     context.stroke();
+}
+
+struct Grid {
+    canvas: HtmlCanvasElement,
+}
+
+impl Grid {
+    fn new(document: &Document, size: RectangleSize) -> Result<Grid> {
+        let canvas = new_canvas(document, size)?;
+        let context = get_context(&canvas)?;
+        draw_grid(&context, size);
+        Ok(Grid { canvas })
+    }
+
+    fn root(&self) -> &HtmlCanvasElement {
+        &self.canvas
+    }
 }
 
 /// TODO: Draw all the dead cells, then the live cells, to avoid gratuitous
@@ -211,15 +235,13 @@ impl Chart {
             height: 20,
         };
 
+        let grid = Grid::new(&system.document, size)?;
         let canvas = new_canvas(&system.document, size)?;
-        let context = canvas
-            .get_context("2d")?
-            .ok_or(Error::Str("canvas should have 2d context"))?
-            .dyn_cast::<CanvasRenderingContext2d>()?;
+        let context = get_context(&canvas)?;
 
         let root = system.document.create_element("div")?;
         root.set_class_name("life");
-        root.append_with_node_2(&title, &canvas)?;
+        root.append_with_node_3(&title, grid.root(), &canvas)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
@@ -230,7 +252,6 @@ impl Chart {
             universe.tick();
             let value = universe.value;
             title.set_text_content(Some(&format!("Prime factors of {value}")));
-            draw_grid(&context, size);
             draw_cells(&context, &universe);
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
         }));
