@@ -13,7 +13,7 @@
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
 
-use std::{cell::RefCell, fmt, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
@@ -22,13 +22,6 @@ use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
 const CELL_SIZE: u32 = 12;
-const DEAD_COLOR: &str = "#333";
-const LIVE_COLOR: &str = "#CCC";
-
-const fn u32_to_usize(value: u32) -> usize {
-    const { assert!(size_of::<u32>() <= size_of::<usize>()) }
-    value as usize
-}
 
 #[derive(Copy, Clone)]
 struct RectangleSize {
@@ -36,12 +29,24 @@ struct RectangleSize {
     height: u32,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Cell {
-    Dead,
-    Live,
+fn new_canvas(document: &Document, size: RectangleSize) -> Result<HtmlCanvasElement> {
+    let canvas = document
+        .create_element("canvas")?
+        .dyn_cast::<HtmlCanvasElement>()?;
+    canvas.set_class_name("chart__canvas");
+    canvas.set_width(CELL_SIZE * size.width);
+    canvas.set_height(CELL_SIZE * size.height);
+    Ok(canvas)
 }
 
+fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
+    canvas
+        .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
+        .ok_or(Error::Str("canvas should have 2d context"))?
+        .dyn_cast::<CanvasRenderingContext2d>()
+}
+
+/// TODO: Use prime factoring from Rust Kart. Profile.
 fn prime_factor(mut value: u32) -> Vec<u32> {
     let mut powers = Vec::new();
     let mut factor = 2;
@@ -57,117 +62,39 @@ fn prime_factor(mut value: u32) -> Vec<u32> {
     powers
 }
 
-struct Universe {
-    size: RectangleSize,
-    cells: Vec<Cell>,
+#[derive(Default)]
+struct Histogram {
+    powers: Vec<u32>,
     value: u32,
 }
 
-impl Universe {
-    fn width(&self) -> u32 {
-        self.size.width
-    }
-
-    fn height(&self) -> u32 {
-        self.size.height
-    }
-
-    fn get_index(&self, row: u32, column: u32) -> usize {
-        u32_to_usize(row * self.width() + column)
-    }
-
-    fn at(&self, row: u32, column: u32) -> Cell {
-        self.cells[self.get_index(row, column)]
-    }
-
-    fn tick(&mut self) {
+impl Histogram {
+    fn incr(&mut self) -> &[u32] {
         self.value += 1;
-        let powers = prime_factor(self.value);
-        let (m, n) = (self.height(), self.width());
-        for i in 0..m {
-            for j in 0..n {
-                let index = self.get_index(i, j);
-                let power = powers.get(u32_to_usize(j)).copied().unwrap_or_default();
-                self.cells[index] = if power > m - i {
-                    Cell::Live
-                } else {
-                    Cell::Dead
-                }
-            }
-        }
+        self.powers = prime_factor(self.value);
+        &self.powers
     }
 
-    pub fn with_size(size: RectangleSize) -> Universe {
-        let cells = (0..size.width * size.height)
-            .map(|i| {
-                if i % 2 == 0 || i % 7 == 0 {
-                    Cell::Live
-                } else {
-                    Cell::Dead
-                }
-            })
-            .collect();
-        Universe {
-            size,
-            cells,
-            value: 0,
+    fn clear(&self, context: &CanvasRenderingContext2d) {
+        context.begin_path();
+        for (j, i) in self.powers.iter().enumerate() {
+            let x = CELL_SIZE * u32::try_from(j).unwrap();
+            let h = CELL_SIZE * i;
+            context.clear_rect(x.into(), 0.0, CELL_SIZE.into(), h.into());
         }
+        context.stroke();
     }
-}
 
-impl fmt::Display for Universe {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for line in self.cells.as_slice().chunks(u32_to_usize(self.width())) {
-            for &cell in line {
-                let symbol = if cell == Cell::Dead { ' ' } else { '\u{2588}' };
-                write!(f, "{symbol}")?;
-            }
-            writeln!(f)?;
+    fn fill(&self, context: &CanvasRenderingContext2d) {
+        context.begin_path();
+        context.set_fill_style_str("#EEE");
+        for (j, i) in self.powers.iter().enumerate() {
+            let x = CELL_SIZE * u32::try_from(j).unwrap();
+            let h = CELL_SIZE * i;
+            context.fill_rect(x.into(), 0.0, CELL_SIZE.into(), h.into());
         }
-        Ok(())
+        context.stroke();
     }
-}
-
-fn new_canvas(document: &Document, size: RectangleSize) -> Result<HtmlCanvasElement> {
-    let canvas = document
-        .create_element("canvas")?
-        .dyn_cast::<HtmlCanvasElement>()?;
-
-    // Leave room for a 1px border around each cell.
-    canvas.set_width((CELL_SIZE + 1) * size.width + 1);
-    canvas.set_height((CELL_SIZE + 1) * size.height + 1);
-
-    Ok(canvas)
-}
-
-fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
-    canvas
-        .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
-        .ok_or(Error::Str("canvas should have 2d context"))?
-        .dyn_cast::<CanvasRenderingContext2d>()
-}
-
-/// TODO: Draw all the dead cells, then the live cells, to avoid gratuitous
-///  state changes in the rendering context. See the canvas performance article
-///  linked in the module docs.
-fn draw_cells(context: &CanvasRenderingContext2d, universe: &Universe) {
-    context.begin_path();
-    for row in 0..universe.height() {
-        for column in 0..universe.width() {
-            let cell = universe.at(row, column);
-            context.set_fill_style_str(match cell {
-                Cell::Dead => DEAD_COLOR,
-                Cell::Live => LIVE_COLOR,
-            });
-            context.fill_rect(
-                (column * (CELL_SIZE + 1) + 1).into(),
-                (row * (CELL_SIZE + 1) + 1).into(),
-                CELL_SIZE.into(),
-                CELL_SIZE.into(),
-            );
-        }
-    }
-    context.stroke();
 }
 
 fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
@@ -201,13 +128,14 @@ impl Chart {
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
 
-        let mut universe = Universe::with_size(size);
+        let mut histogram = Histogram::default();
         let raf_system = Rc::clone(system);
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
-            universe.tick();
-            let value = universe.value;
+            histogram.clear(&context);
+            histogram.incr();
+            let value = histogram.value;
             title.set_text_content(Some(&format!("Prime factors of {value}")));
-            draw_cells(&context, &universe);
+            histogram.fill(&context);
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
         }));
 

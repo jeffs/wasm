@@ -51,3 +51,7 @@ body {
   margin: auto;
   min-height: 100svh;
 }
+
+.chart__canvas {
+  transform: scale(1, -1);
+}
