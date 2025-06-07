@@ -20,7 +20,7 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
-const CELL_WIDTH: u32 = 4;
+const CELL_WIDTH: u32 = 8;
 const CELL_HEIGHT: u32 = 32;
 const FILL_STYLE: &str = "purple";
 
@@ -28,7 +28,12 @@ const CANVAS_WIDTH: u32 = 800;
 const CANVAS_HEIGHT: u32 = 320;
 
 /// Increase this number to slow the animation.
-const THROTTLE: u32 = 1;
+const THROTTLE: u32 = 20;
+
+const fn u32_to_usize(value: u32) -> usize {
+    const { assert!(size_of::<u32>() <= size_of::<usize>()) }
+    value as usize
+}
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     let canvas = document
@@ -41,10 +46,12 @@ fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
 }
 
 fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
-    canvas
+    let context = canvas
         .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
         .ok_or(Error::Str("canvas should have 2d context"))?
-        .dyn_cast::<CanvasRenderingContext2d>()
+        .dyn_cast::<CanvasRenderingContext2d>()?;
+    context.set_fill_style_str(FILL_STYLE);
+    Ok(context)
 }
 
 fn prime_factor(mut n: u32) -> Vec<u32> {
@@ -66,12 +73,42 @@ fn prime_factor(mut n: u32) -> Vec<u32> {
     unreachable!()
 }
 
-/// Returns the `x` and `h` parameters Canvas `clear_rect` and `fill_rect`.  I
-/// know that's weird, but it's what varies from one histogram bar to the next.
-fn rect(i: u32, j: usize) -> (f64, f64) {
-    let x = CELL_WIDTH * u32::try_from(j).unwrap();
-    let h = CELL_HEIGHT * i;
-    (x.into(), h.into())
+struct Rectangle {
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+}
+
+struct Rectangles<'a> {
+    powers: &'a [u32],
+    column: u32,
+}
+
+impl Rectangles<'_> {
+    fn new(powers: &[u32]) -> Rectangles {
+        Rectangles { powers, column: 0 }
+    }
+}
+
+impl Iterator for Rectangles<'_> {
+    type Item = Rectangle;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let column = u32_to_usize(self.column);
+        if column == self.powers.len() {
+            return None;
+        }
+        let x = CELL_WIDTH * self.column;
+        let h = CELL_HEIGHT * self.powers[column];
+        self.column += 1;
+        Some(Rectangle {
+            x: x.into(),
+            y: 0.0,
+            w: CELL_WIDTH.into(),
+            h: h.into(),
+        })
+    }
 }
 
 #[derive(Default)]
@@ -88,7 +125,6 @@ impl Histogram {
         }
     }
 
-    #[allow(dead_code)]
     fn incr(&mut self) -> &[u32] {
         self.value += 1;
         self.powers = prime_factor(self.value);
@@ -97,19 +133,16 @@ impl Histogram {
 
     fn clear(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        for (j, &i) in self.powers.iter().enumerate() {
-            let (x, h) = rect(i, j);
-            context.clear_rect(x, 0.0, CELL_WIDTH.into(), h);
+        for rect in Rectangles::new(&self.powers) {
+            context.clear_rect(rect.x, rect.y, rect.w, rect.h);
         }
         context.stroke();
     }
 
     fn fill(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        context.set_fill_style_str(FILL_STYLE);
-        for (j, &i) in self.powers.iter().enumerate() {
-            let (x, h) = rect(i, j);
-            context.fill_rect(x, 0.0, CELL_WIDTH.into(), h);
+        for rect in Rectangles::new(&self.powers) {
+            context.fill_rect(rect.x, rect.y, rect.w, rect.h);
         }
         context.stroke();
     }
