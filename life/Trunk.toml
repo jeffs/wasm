@@ -1,10 +1,13 @@
 # https://trunkrs.dev/configuration/
 
-# For `trunk clean`.
-dist = "target/dist"
+# The directory served by GitHub Pages.
+dist = "../docs"
 
 [build]
-dist = "target/dist"
+dist = "../docs"
+public_url = "https://jeffs.github.io/wasm/"
+release = true
+minify = "always"
 
 [serve]
 addresses = ["0.0.0.0"]
