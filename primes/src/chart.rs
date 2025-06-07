@@ -8,7 +8,6 @@
 //! # TODO
 //!
 //! * [] Add an FPS counter
-//! * [] Disable transparency of the canvas
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
@@ -21,12 +20,15 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
-const CELL_WIDTH: u32 = 8;
-const CELL_HEIGHT: u32 = 64;
+const CELL_WIDTH: u32 = 4;
+const CELL_HEIGHT: u32 = 32;
 const FILL_STYLE: &str = "purple";
 
 const CANVAS_WIDTH: u32 = 800;
 const CANVAS_HEIGHT: u32 = 320;
+
+/// Increase this number to slow the animation.
+const THROTTLE: u32 = 1;
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     let canvas = document
@@ -119,6 +121,24 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
         .expect("requesting animation frame");
 }
 
+struct Throttle {
+    counter: u32,
+    period: u32,
+}
+
+impl Throttle {
+    fn new(period: u32) -> Throttle {
+        assert_ne!(period, 0);
+        Throttle { counter: 0, period }
+    }
+
+    fn skip(&mut self) -> bool {
+        let counter = self.counter;
+        self.counter += 1;
+        counter % self.period != 0
+    }
+}
+
 pub struct Chart {
     pub root: Element,
 }
@@ -129,34 +149,29 @@ impl Chart {
         title.set_class_name("chart__title");
         title.set_text_content(Some("Prime factors of 1"));
 
-        let label_x = system.document.create_element("pre")?;
-        label_x.set_class_name("chart__label_x");
-        // label_x.set_text_content(Some("02 03 05 07 11 13 17 19 23 29"));
-
         let canvas = new_canvas(&system.document)?;
         let context = get_context(&canvas)?;
 
         let root = system.document.create_element("div")?;
-        root.set_class_name("life");
-        root.append_with_node_3(&title, &canvas, &label_x)?;
+        root.set_class_name("chart");
+        root.append_with_node_2(&title, &canvas)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
 
-        #[allow(unused_variables)]
-        let mut counter = 0;
+        let mut throttle = Throttle::new(THROTTLE);
         let mut histogram = Histogram::with_value(0);
         let raf_system = Rc::clone(system);
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
+            request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
+            if throttle.skip() {
+                return;
+            }
             histogram.clear(&context);
-            // if counter % 10 == 0 {
             histogram.incr();
-            // }
             let value = histogram.value;
             title.set_text_content(Some(&format!("Prime factors of {value}")));
             histogram.fill(&context);
-            request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
-            counter += 1;
         }));
 
         request_animation_frame(&system.window, raf_cb.borrow().as_ref().unwrap());
