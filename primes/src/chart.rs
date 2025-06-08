@@ -25,10 +25,11 @@ const CANVAS_HEIGHT: u32 = 320;
 
 const GAP: f64 = 2.0;
 
-/// Increase this number to slow the animation.
-const THROTTLE: u32 = 100;
+/// Increase this number to slow the animation. The canvas updates on every Nth
+/// frame; so, at 60fps, a throttle of 60 updates about once per second.
+const THROTTLE: u32 = 180;
 
-const FILL_STYLE: FillStyle = FillStyle::Color;
+const FILL_STYLE: FillStyle = FillStyle::Auto;
 
 const COLORS: [&str; 14] = [
     "#FF0000", //  2,  47 Red
@@ -94,7 +95,7 @@ fn prime_factor(mut n: u32) -> Vec<u32> {
     if n < 2 {
         return powers;
     }
-    for p in rk_primes::Sieve::default().primes() {
+    for p in rk_primes::Sieve::new().primes() {
         let mut e = 0;
         while n % p == 0 {
             n /= p;
@@ -233,7 +234,7 @@ impl Chart {
     pub fn new(system: &Rc<System>) -> Result<Self> {
         let title = system.document.create_element("h1")?;
         title.set_class_name("chart__title");
-        title.set_text_content(Some("Prime factors of 1"));
+        title.set_text_content(Some("Prime factors of 1: []"));
 
         let canvas = new_canvas(&system.document)?;
         let context = get_context(&canvas)?;
@@ -244,6 +245,9 @@ impl Chart {
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
+
+        let mut factors = Vec::new();
+        let mut sieve = rk_primes::Sieve::new();
 
         let mut throttle = Throttle::new(THROTTLE);
         let mut histogram = Histogram::with_value(0);
@@ -256,7 +260,9 @@ impl Chart {
             histogram.clear(&context);
             histogram.incr();
             let value = histogram.value;
-            title.set_text_content(Some(&format!("Prime factors of {value}")));
+            factors.clear();
+            factors.extend(sieve.factors(value));
+            title.set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
             histogram.fill(&context);
         }));
 

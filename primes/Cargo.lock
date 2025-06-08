@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "bumpalo"
-version = "3.17.0"
+version = "3.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1628fb46dfa0b37568d12e5edd512553eccf6a22a78e8bde00bb4aed84d5bdbf"
+checksum = "793db76d6187cd04dff33004d8e6c9cc4e05cd330500379d2394209271b4aeee"
 
 [[package]]
 name = "cfg-if"
@@ -78,7 +78,7 @@ dependencies = [
 [[package]]
 name = "rk-primes"
 version = "0.1.0"
-source = "git+https://github.com/jeffs/rust-kart#e9b3714c9ff9b01baaa80020844f8fd56bee36e0"
+source = "git+https://github.com/jeffs/rust-kart#6d1090025d1a032b4cfb0fe9fdb75086427b9da0"
 
 [[package]]
 name = "rustversion"
