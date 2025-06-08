@@ -26,7 +26,9 @@ const CANVAS_HEIGHT: u32 = 320;
 const GAP: f64 = 2.0;
 
 /// Increase this number to slow the animation.
-const THROTTLE: u32 = 1;
+const THROTTLE: u32 = 100;
+
+const FILL_STYLE: FillStyle = FillStyle::Color;
 
 const COLORS: [&str; 14] = [
     "#FF0000", //  2,  47 Red
@@ -44,6 +46,25 @@ const COLORS: [&str; 14] = [
     "#008080", // 41, 103 Teal
     "#000080", // 43, 107 Navy
 ];
+
+#[allow(dead_code)]
+enum FillStyle {
+    /// Color when throttled, and Grayscale otherwise, because flashing colors
+    /// are jarring.
+    Auto,
+    Color,
+    Grayscale,
+}
+
+impl FillStyle {
+    fn get(&self, index: usize) -> String {
+        match self {
+            FillStyle::Color => COLORS[index % COLORS.len()].to_owned(),
+            FillStyle::Auto if THROTTLE > 1 => COLORS[index % COLORS.len()].to_owned(),
+            _ => format!("#{i:02x}{i:02x}{i:02x}", i = 15 + index % 16 * 14),
+        }
+    }
+}
 
 const fn u32_to_usize(value: u32) -> usize {
     const { assert!(size_of::<u32>() <= size_of::<usize>()) }
@@ -171,13 +192,7 @@ impl Histogram {
     fn fill(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
         for (index, rects) in Rectangles::new(&self.powers).enumerate() {
-            if THROTTLE > 1 {
-                context.set_fill_style_str(COLORS[index % COLORS.len()]);
-            } else {
-                // Use grayscale, because flashing colors are jarring.
-                let color = format!("#{i:02x}{i:02x}{i:02x}", i = 15 + index % 16 * 14);
-                context.set_fill_style_str(&color);
-            }
+            context.set_fill_style_str(FILL_STYLE.get(index).as_str());
             for rect in rects {
                 context.fill_rect(rect.x, rect.y, rect.w, rect.h);
             }
