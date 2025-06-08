@@ -7,6 +7,7 @@
 //!
 //! # TODO
 //!
+//! * [] Add a Play/Pause and Fast Forward buttons to the UI
 //! * [] Add an FPS counter
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
