@@ -20,15 +20,13 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
-const CELL_WIDTH: u32 = 8;
-const CELL_HEIGHT: u32 = 32;
 const FILL_STYLE: &str = "purple";
 
 const CANVAS_WIDTH: u32 = 800;
 const CANVAS_HEIGHT: u32 = 320;
 
 /// Increase this number to slow the animation.
-const THROTTLE: u32 = 20;
+const THROTTLE: u32 = 100;
 
 const fn u32_to_usize(value: u32) -> usize {
     const { assert!(size_of::<u32>() <= size_of::<usize>()) }
@@ -82,12 +80,17 @@ struct Rectangle {
 
 struct Rectangles<'a> {
     powers: &'a [u32],
+    max_power: u32,
     column: u32,
 }
 
 impl Rectangles<'_> {
     fn new(powers: &[u32]) -> Rectangles {
-        Rectangles { powers, column: 0 }
+        Rectangles {
+            powers,
+            max_power: powers.iter().copied().max().unwrap_or(1),
+            column: 0,
+        }
     }
 }
 
@@ -95,18 +98,27 @@ impl Iterator for Rectangles<'_> {
     type Item = Rectangle;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let column = u32_to_usize(self.column);
-        if column == self.powers.len() {
+        let length = self.powers.len();
+        let index = u32_to_usize(self.column);
+        if index == length {
             return None;
         }
-        let x = CELL_WIDTH * self.column;
-        let h = CELL_HEIGHT * self.powers[column];
+
+        let length = u32::try_from(length).unwrap();
+
+        // crate::dbg!(length);
+
+        let w = f64::from(CANVAS_WIDTH * 1000 / length) / 1000.0;
+        let x = f64::from(self.column) * w;
+
+        let h = f64::from(self.powers[index] * CANVAS_HEIGHT * 1000 / self.max_power) / 1000.0;
+
         self.column += 1;
         Some(Rectangle {
-            x: x.into(),
+            x: x.round(),
             y: 0.0,
-            w: CELL_WIDTH.into(),
-            h: h.into(),
+            w: w.round(),
+            h: h.round(),
         })
     }
 }

@@ -33,6 +33,7 @@ macro_rules! into {
 
 into!(&str);
 into!(bool);
+into!(u32);
 into!(usize);
 
 impl<K: IntoJs, V: IntoJs, const N: usize> IntoJs for [(K, V); N] {
