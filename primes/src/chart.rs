@@ -20,15 +20,52 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
-const CELL_WIDTH: u32 = 8;
-const CELL_HEIGHT: u32 = 32;
-const FILL_STYLE: &str = "purple";
-
 const CANVAS_WIDTH: u32 = 800;
 const CANVAS_HEIGHT: u32 = 320;
 
-/// Increase this number to slow the animation.
-const THROTTLE: u32 = 20;
+const GAP: f64 = 2.0;
+
+/// Increase this number to slow the animation. The canvas updates on every Nth
+/// frame; so, at 60fps, a throttle of 60 updates about once per second.
+const THROTTLE: u32 = 180;
+
+const FILL_STYLE: FillStyle = FillStyle::Auto;
+
+const COLORS: [&str; 14] = [
+    "#FF0000", //  2,  47 Red
+    "#00FF00", //  3,  53 Lime
+    "#0000FF", //  5,  59 Blue
+    "#FFFF00", //  7,  61 Yellow
+    "#00FFFF", // 11,  67 Cyan
+    "#FF00FF", // 13,  71 Magenta
+    "#C0C0C0", // 17,  73 Silver
+    "#808080", // 19,  79 Gray
+    "#800000", // 23,  83 Maroon
+    "#808000", // 29,  89 Olive
+    "#008000", // 31,  97 Green
+    "#800080", // 37, 101 Purple
+    "#008080", // 41, 103 Teal
+    "#000080", // 43, 107 Navy
+];
+
+#[allow(dead_code)]
+enum FillStyle {
+    /// Color when throttled, and Grayscale otherwise, because flashing colors
+    /// are jarring.
+    Auto,
+    Color,
+    Grayscale,
+}
+
+impl FillStyle {
+    fn get(&self, index: usize) -> String {
+        match self {
+            FillStyle::Color => COLORS[index % COLORS.len()].to_owned(),
+            FillStyle::Auto if THROTTLE > 1 => COLORS[index % COLORS.len()].to_owned(),
+            _ => format!("#{i:02x}{i:02x}{i:02x}", i = 15 + index % 16 * 14),
+        }
+    }
+}
 
 const fn u32_to_usize(value: u32) -> usize {
     const { assert!(size_of::<u32>() <= size_of::<usize>()) }
@@ -50,7 +87,6 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
         .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
         .ok_or(Error::Str("canvas should have 2d context"))?
         .dyn_cast::<CanvasRenderingContext2d>()?;
-    context.set_fill_style_str(FILL_STYLE);
     Ok(context)
 }
 
@@ -59,7 +95,7 @@ fn prime_factor(mut n: u32) -> Vec<u32> {
     if n < 2 {
         return powers;
     }
-    for p in rk_primes::Sieve::default().primes() {
+    for p in rk_primes::Sieve::new().primes() {
         let mut e = 0;
         while n % p == 0 {
             n /= p;
@@ -82,32 +118,47 @@ struct Rectangle {
 
 struct Rectangles<'a> {
     powers: &'a [u32],
+    height: f64,
     column: u32,
 }
 
 impl Rectangles<'_> {
     fn new(powers: &[u32]) -> Rectangles {
-        Rectangles { powers, column: 0 }
+        let max_power = powers.iter().copied().max().unwrap_or(1);
+        Rectangles {
+            powers,
+            height: (f64::from(CANVAS_HEIGHT * 1000 / max_power) / 1000.0).round(),
+            column: 0,
+        }
     }
 }
 
 impl Iterator for Rectangles<'_> {
-    type Item = Rectangle;
+    type Item = Vec<Rectangle>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let column = u32_to_usize(self.column);
-        if column == self.powers.len() {
+        let length = self.powers.len();
+        let index = u32_to_usize(self.column);
+        if index == length {
             return None;
         }
-        let x = CELL_WIDTH * self.column;
-        let h = CELL_HEIGHT * self.powers[column];
+
+        let length = u32::try_from(length).unwrap();
+
+        let w = f64::from(CANVAS_WIDTH * 1000 / length) / 1000.0;
+        let x = f64::from(self.column) * w;
+        let rects = (0..self.powers[index])
+            .map(|p| Rectangle {
+                x: (x + GAP).round(),
+                y: f64::from(p) * self.height + GAP,
+                w: (w - GAP * 2.0).max(0.0).round(),
+                h: (self.height - GAP * 2.0).max(0.0),
+            })
+            .collect();
+
         self.column += 1;
-        Some(Rectangle {
-            x: x.into(),
-            y: 0.0,
-            w: CELL_WIDTH.into(),
-            h: h.into(),
-        })
+
+        Some(rects)
     }
 }
 
@@ -133,7 +184,7 @@ impl Histogram {
 
     fn clear(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        for rect in Rectangles::new(&self.powers) {
+        for rect in Rectangles::new(&self.powers).flatten() {
             context.clear_rect(rect.x, rect.y, rect.w, rect.h);
         }
         context.stroke();
@@ -141,8 +192,11 @@ impl Histogram {
 
     fn fill(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        for rect in Rectangles::new(&self.powers) {
-            context.fill_rect(rect.x, rect.y, rect.w, rect.h);
+        for (index, rects) in Rectangles::new(&self.powers).enumerate() {
+            context.set_fill_style_str(FILL_STYLE.get(index).as_str());
+            for rect in rects {
+                context.fill_rect(rect.x, rect.y, rect.w, rect.h);
+            }
         }
         context.stroke();
     }
@@ -180,7 +234,7 @@ impl Chart {
     pub fn new(system: &Rc<System>) -> Result<Self> {
         let title = system.document.create_element("h1")?;
         title.set_class_name("chart__title");
-        title.set_text_content(Some("Prime factors of 1"));
+        title.set_text_content(Some("Prime factors of 1: []"));
 
         let canvas = new_canvas(&system.document)?;
         let context = get_context(&canvas)?;
@@ -191,6 +245,9 @@ impl Chart {
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
+
+        let mut factors = Vec::new();
+        let mut sieve = rk_primes::Sieve::new();
 
         let mut throttle = Throttle::new(THROTTLE);
         let mut histogram = Histogram::with_value(0);
@@ -203,7 +260,9 @@ impl Chart {
             histogram.clear(&context);
             histogram.incr();
             let value = histogram.value;
-            title.set_text_content(Some(&format!("Prime factors of {value}")));
+            factors.clear();
+            factors.extend(sieve.factors(value));
+            title.set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
             histogram.fill(&context);
         }));
 
