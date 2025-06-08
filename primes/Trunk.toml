@@ -1,0 +1,10 @@
+# https://trunkrs.dev/configuration/
+
+# For `trunk clean`.
+dist = "target/dist"
+
+[build]
+dist = "target/dist"
+
+[serve]
+addresses = ["0.0.0.0"]
