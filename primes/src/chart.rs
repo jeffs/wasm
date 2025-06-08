@@ -20,29 +20,29 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
-const FILL_STYLE: &str = "hsl(21, 50%, 50%)";
-
 const CANVAS_WIDTH: u32 = 800;
 const CANVAS_HEIGHT: u32 = 320;
+
+const GAP: f64 = 2.0;
 
 /// Increase this number to slow the animation.
 const THROTTLE: u32 = 100;
 
 const COLORS: [&str; 14] = [
-    "#FF0000", // Red
-    "#00FF00", // Lime
-    "#0000FF", // Blue
-    "#FFFF00", // Yellow
-    "#00FFFF", // Cyan
-    "#FF00FF", // Magenta
-    "#C0C0C0", // Silver
-    "#808080", // Gray
-    "#800000", // Maroon
-    "#808000", // Olive
-    "#008000", // Green
-    "#800080", // Purple
-    "#008080", // Teal
-    "#000080", // Navy
+    "#FF0000", //  2,  47 Red
+    "#00FF00", //  3,  53 Lime
+    "#0000FF", //  5,  59 Blue
+    "#FFFF00", //  7,  61 Yellow
+    "#00FFFF", // 11,  67 Cyan
+    "#FF00FF", // 13,  71 Magenta
+    "#C0C0C0", // 17,  73 Silver
+    "#808080", // 19,  79 Gray
+    "#800000", // 23,  83 Maroon
+    "#808000", // 29,  89 Olive
+    "#008000", // 31,  97 Green
+    "#800080", // 37, 101 Purple
+    "#008080", // 41, 103 Teal
+    "#000080", // 43, 107 Navy
 ];
 
 const fn u32_to_usize(value: u32) -> usize {
@@ -65,7 +65,6 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
         .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
         .ok_or(Error::Str("canvas should have 2d context"))?
         .dyn_cast::<CanvasRenderingContext2d>()?;
-    context.set_fill_style_str(FILL_STYLE);
     Ok(context)
 }
 
@@ -97,22 +96,23 @@ struct Rectangle {
 
 struct Rectangles<'a> {
     powers: &'a [u32],
-    max_power: u32,
+    height: f64,
     column: u32,
 }
 
 impl Rectangles<'_> {
     fn new(powers: &[u32]) -> Rectangles {
+        let max_power = powers.iter().copied().max().unwrap_or(1);
         Rectangles {
             powers,
-            max_power: powers.iter().copied().max().unwrap_or(1),
+            height: (f64::from(CANVAS_HEIGHT * 1000 / max_power) / 1000.0).round(),
             column: 0,
         }
     }
 }
 
 impl Iterator for Rectangles<'_> {
-    type Item = Rectangle;
+    type Item = Vec<Rectangle>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let length = self.powers.len();
@@ -123,20 +123,20 @@ impl Iterator for Rectangles<'_> {
 
         let length = u32::try_from(length).unwrap();
 
-        // crate::dbg!(length);
-
         let w = f64::from(CANVAS_WIDTH * 1000 / length) / 1000.0;
         let x = f64::from(self.column) * w;
-
-        let h = f64::from(self.powers[index] * CANVAS_HEIGHT * 1000 / self.max_power) / 1000.0;
+        let rects = (0..self.powers[index])
+            .map(|p| Rectangle {
+                x: (x + GAP).round(),
+                y: f64::from(p) * self.height + GAP,
+                w: (w - GAP * 2.0).max(0.0).round(),
+                h: (self.height - GAP * 2.0).max(0.0),
+            })
+            .collect();
 
         self.column += 1;
-        Some(Rectangle {
-            x: x.round(),
-            y: 0.0,
-            w: w.round(),
-            h: h.round(),
-        })
+
+        Some(rects)
     }
 }
 
@@ -162,7 +162,7 @@ impl Histogram {
 
     fn clear(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        for rect in Rectangles::new(&self.powers) {
+        for rect in Rectangles::new(&self.powers).flatten() {
             context.clear_rect(rect.x, rect.y, rect.w, rect.h);
         }
         context.stroke();
@@ -170,9 +170,11 @@ impl Histogram {
 
     fn fill(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        for (index, rect) in Rectangles::new(&self.powers).enumerate() {
+        for (index, rects) in Rectangles::new(&self.powers).enumerate() {
             context.set_fill_style_str(COLORS[index % COLORS.len()]);
-            context.fill_rect(rect.x, rect.y, rect.w, rect.h);
+            for rect in rects {
+                context.fill_rect(rect.x, rect.y, rect.w, rect.h);
+            }
         }
         context.stroke();
     }
