@@ -18,6 +18,7 @@ features = [
   "HtmlCanvasElement",
   "HtmlElement",
   "Node",
+  "Performance",
   "Text",
   "Window",
   "console",

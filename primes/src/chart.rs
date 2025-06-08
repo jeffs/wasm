@@ -7,7 +7,8 @@
 //!
 //! # TODO
 //!
-//! * [] Add an FPS counter
+//! * [] Add a Play/Pause and Fast Forward buttons to the UI
+//! * [] Factor out FPS component
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
@@ -27,7 +28,7 @@ const GAP: f64 = 2.0;
 
 /// Increase this number to slow the animation. The canvas updates on every Nth
 /// frame; so, at 60fps, a throttle of 60 updates about once per second.
-const THROTTLE: u32 = 180;
+const THROTTLE: u32 = 100;
 
 const FILL_STYLE: FillStyle = FillStyle::Auto;
 
@@ -239,9 +240,12 @@ impl Chart {
         let canvas = new_canvas(&system.document)?;
         let context = get_context(&canvas)?;
 
+        let caption = system.document.create_element("p")?;
+        caption.set_class_name("chart__caption");
+
         let root = system.document.create_element("div")?;
         root.set_class_name("chart");
-        root.append_with_node_2(&title, &canvas)?;
+        root.append_with_node_3(&title, &canvas, &caption)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
@@ -252,11 +256,24 @@ impl Chart {
         let mut throttle = Throttle::new(THROTTLE);
         let mut histogram = Histogram::with_value(1);
         let raf_system = Rc::clone(system);
+        let perf = system
+            .window
+            .performance()
+            .ok_or_else(|| Error::Str("no Performance API"))?;
+        let mut old_now = perf.now();
+        let mut old_counter = throttle.counter;
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
             if throttle.skip() {
                 return;
             }
+
+            let now = perf.now();
+            let fps = f64::from(throttle.counter - old_counter) * 1000.0 / (now - old_now);
+            old_counter = throttle.counter;
+            old_now = now;
+            caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
+
             histogram.clear(&context);
             histogram.incr();
             let value = histogram.value;
