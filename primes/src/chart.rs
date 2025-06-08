@@ -20,13 +20,30 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
-const FILL_STYLE: &str = "purple";
+const FILL_STYLE: &str = "hsl(21, 50%, 50%)";
 
 const CANVAS_WIDTH: u32 = 800;
 const CANVAS_HEIGHT: u32 = 320;
 
 /// Increase this number to slow the animation.
 const THROTTLE: u32 = 100;
+
+const COLORS: [&str; 14] = [
+    "#FF0000", // Red
+    "#00FF00", // Lime
+    "#0000FF", // Blue
+    "#FFFF00", // Yellow
+    "#00FFFF", // Cyan
+    "#FF00FF", // Magenta
+    "#C0C0C0", // Silver
+    "#808080", // Gray
+    "#800000", // Maroon
+    "#808000", // Olive
+    "#008000", // Green
+    "#800080", // Purple
+    "#008080", // Teal
+    "#000080", // Navy
+];
 
 const fn u32_to_usize(value: u32) -> usize {
     const { assert!(size_of::<u32>() <= size_of::<usize>()) }
@@ -153,7 +170,8 @@ impl Histogram {
 
     fn fill(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
-        for rect in Rectangles::new(&self.powers) {
+        for (index, rect) in Rectangles::new(&self.powers).enumerate() {
+            context.set_fill_style_str(COLORS[index % COLORS.len()]);
             context.fill_rect(rect.x, rect.y, rect.w, rect.h);
         }
         context.stroke();
