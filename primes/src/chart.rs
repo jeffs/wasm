@@ -250,7 +250,7 @@ impl Chart {
         let mut sieve = rk_primes::Sieve::new();
 
         let mut throttle = Throttle::new(THROTTLE);
-        let mut histogram = Histogram::with_value(0);
+        let mut histogram = Histogram::with_value(1);
         let raf_system = Rc::clone(system);
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
