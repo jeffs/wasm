@@ -26,7 +26,7 @@ const CANVAS_HEIGHT: u32 = 320;
 const GAP: f64 = 2.0;
 
 /// Increase this number to slow the animation.
-const THROTTLE: u32 = 100;
+const THROTTLE: u32 = 1;
 
 const COLORS: [&str; 14] = [
     "#FF0000", //  2,  47 Red
@@ -171,7 +171,13 @@ impl Histogram {
     fn fill(&self, context: &CanvasRenderingContext2d) {
         context.begin_path();
         for (index, rects) in Rectangles::new(&self.powers).enumerate() {
-            context.set_fill_style_str(COLORS[index % COLORS.len()]);
+            if THROTTLE > 1 {
+                context.set_fill_style_str(COLORS[index % COLORS.len()]);
+            } else {
+                // Use grayscale, because flashing colors are jarring.
+                let color = format!("#{i:02x}{i:02x}{i:02x}", i = 15 + index % 16 * 14);
+                context.set_fill_style_str(&color);
+            }
             for rect in rects {
                 context.fill_rect(rect.x, rect.y, rect.w, rect.h);
             }
