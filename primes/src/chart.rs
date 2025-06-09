@@ -13,12 +13,14 @@
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
 
-use std::{cell::RefCell, rc::Rc};
+use core::cell::RefCell;
+use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
 use crate::js::prelude::*;
+use crate::magic::{Component, IntoComponent};
 use crate::{Error, Result, System};
 
 const CANVAS_WIDTH: u32 = 800;
@@ -227,25 +229,29 @@ impl Throttle {
     }
 }
 
+fn new_title(document: &Document) -> Result<impl Component + 'static> {
+    let title = ["h1", "chart__title"].into_component(document)?;
+    let root = title.root();
+    root.set_class_name("chart__title");
+    root.set_text_content(Some("Prime factors of 1: []"));
+    Ok(title)
+}
+
 pub struct Chart {
     pub root: Element,
 }
 
 impl Chart {
     pub fn new(system: &Rc<System>) -> Result<Self> {
-        let title = system.document.create_element("h1")?;
-        title.set_class_name("chart__title");
-        title.set_text_content(Some("Prime factors of 1: []"));
-
+        let title = new_title(&system.document)?;
         let canvas = new_canvas(&system.document)?;
         let context = get_context(&canvas)?;
 
-        let caption = system.document.create_element("p")?;
-        caption.set_class_name("chart__caption");
+        let caption = ["p", "chart__caption"].into_component(&system.document)?;
 
         let root = system.document.create_element("div")?;
         root.set_class_name("chart");
-        root.append_with_node_3(&title, &canvas, &caption)?;
+        root.append_with_node_3(title.root(), &canvas, caption.root())?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
@@ -272,14 +278,18 @@ impl Chart {
             let fps = f64::from(throttle.counter - old_counter) * 1000.0 / (now - old_now);
             old_counter = throttle.counter;
             old_now = now;
-            caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
+            caption
+                .root()
+                .set_text_content(Some(&format!("FPS: {fps:.1}")));
 
             histogram.clear(&context);
             histogram.incr();
             let value = histogram.value;
             factors.clear();
             factors.extend(sieve.factors(value));
-            title.set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
+            title
+                .root()
+                .set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
             histogram.fill(&context);
         }));
 

@@ -2,6 +2,7 @@ mod app;
 mod chart;
 mod error;
 pub mod js;
+mod magic;
 mod system;
 
 pub use app::App;
