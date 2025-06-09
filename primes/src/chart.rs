@@ -20,7 +20,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
 use crate::js::prelude::*;
-use crate::magic::{Component, IntoComponent};
+use crate::magic::IntoComponent;
 use crate::{Error, Result, System};
 
 const CANVAS_WIDTH: u32 = 800;
@@ -229,11 +229,9 @@ impl Throttle {
     }
 }
 
-fn new_title(document: &Document) -> Result<impl Component + 'static> {
+fn new_title(document: &Document) -> Result<Element> {
     let title = ["h1", "chart__title"].into_component(document)?;
-    let root = title.root();
-    root.set_class_name("chart__title");
-    root.set_text_content(Some("Prime factors of 1: []"));
+    title.set_text_content(Some("Prime factors of 1: []"));
     Ok(title)
 }
 
@@ -251,7 +249,7 @@ impl Chart {
 
         let root = system.document.create_element("div")?;
         root.set_class_name("chart");
-        root.append_with_node_3(title.root(), &canvas, caption.root())?;
+        root.append_with_node_3(&title, &canvas, &caption)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
@@ -265,8 +263,9 @@ impl Chart {
         let perf = system
             .window
             .performance()
-            .ok_or_else(|| Error::Str("no Performance API"))?;
+            .ok_or(Error::Str("no Performance API"))?;
         let mut old_now = perf.now();
+
         let mut old_counter = throttle.counter;
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
@@ -278,18 +277,14 @@ impl Chart {
             let fps = f64::from(throttle.counter - old_counter) * 1000.0 / (now - old_now);
             old_counter = throttle.counter;
             old_now = now;
-            caption
-                .root()
-                .set_text_content(Some(&format!("FPS: {fps:.1}")));
+            caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
 
             histogram.clear(&context);
             histogram.incr();
             let value = histogram.value;
             factors.clear();
             factors.extend(sieve.factors(value));
-            title
-                .root()
-                .set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
+            title.set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
             histogram.fill(&context);
         }));
 
