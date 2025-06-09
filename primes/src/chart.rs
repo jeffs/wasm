@@ -76,10 +76,8 @@ const fn u32_to_usize(value: u32) -> usize {
 }
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    let canvas = document
-        .create_element("canvas")?
-        .dyn_cast::<HtmlCanvasElement>()?;
-    canvas.set_class_name("chart__canvas");
+    let canvas = ("canvas", "chart__canvas").into_component(document)?;
+    let canvas = canvas.dyn_cast::<HtmlCanvasElement>()?;
     canvas.set_width(CANVAS_WIDTH);
     canvas.set_height(CANVAS_HEIGHT);
     Ok(canvas)
@@ -229,23 +227,18 @@ impl Throttle {
     }
 }
 
-fn new_title(document: &Document) -> Result<Element> {
-    let title = ["h1", "chart__title"].into_component(document)?;
-    title.set_text_content(Some("Prime factors of 1: []"));
-    Ok(title)
-}
-
 pub struct Chart {
     pub root: Element,
 }
 
 impl Chart {
     pub fn new(system: &Rc<System>) -> Result<Self> {
-        let title = new_title(&system.document)?;
+        let title =
+            (("h1", "chart__title"), "Prime factors of 1: []").into_component(&system.document)?;
         let canvas = new_canvas(&system.document)?;
         let context = get_context(&canvas)?;
 
-        let caption = ["p", "chart__caption"].into_component(&system.document)?;
+        let caption = ("p", "chart__caption").into_component(&system.document)?;
 
         let root = system.document.create_element("div")?;
         root.set_class_name("chart");
