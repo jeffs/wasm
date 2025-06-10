@@ -233,6 +233,10 @@ pub struct Chart {
 }
 
 impl Chart {
+    /// For more complex pages, animation could start and stop as the component
+    /// is added or removed from the DOM, as detected by [Mutation Observers](
+    /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
+    /// ).
     pub fn new(system: &Rc<System>) -> Result<Self> {
         let document = &system.document;
         let title = document.h1(["chart__title"], "Prime factors of 1: []")?;

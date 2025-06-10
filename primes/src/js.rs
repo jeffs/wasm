@@ -1,5 +1,5 @@
 //! Interoperability with JavaScript via the [`web_sys`], [`js_sys`], and
-//! [`wasm_bindgen`] crates.
+//! [`mod@wasm_bindgen`] crates.
 
 use std::result::Result as StdResult;
 
