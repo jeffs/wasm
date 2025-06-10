@@ -71,7 +71,7 @@ impl IntoComponent for (&str, &str) {
 
 impl<Parent: IntoComponent, Child: IntoComponent> IntoComponent for (Parent, (Child,))
 where
-    Parent::Context: AsRef<Document> + AsRef<Child::Context>,
+    Parent::Context: AsRef<Child::Context>,
 {
     type Context = Parent::Context;
     type Component = Parent::Component;
@@ -85,10 +85,7 @@ where
 }
 
 /// The string is text content.
-impl<Parent: IntoComponent> IntoComponent for (Parent, &str)
-where
-    Parent::Context: AsRef<Document>,
-{
+impl<Parent: IntoComponent> IntoComponent for (Parent, &str) {
     type Context = Parent::Context;
     type Component = Parent::Component;
 
@@ -102,7 +99,7 @@ where
 impl<Parent: IntoComponent, Child0: IntoComponent, Child1: IntoComponent> IntoComponent
     for (Parent, (Child0, Child1))
 where
-    Parent::Context: AsRef<Document> + AsRef<Child0::Context> + AsRef<Child1::Context>,
+    Parent::Context: AsRef<Child0::Context> + AsRef<Child1::Context>,
 {
     type Context = Parent::Context;
     type Component = Parent::Component;
@@ -121,8 +118,7 @@ where
 impl<Parent: IntoComponent, Child0: IntoComponent, Child1: IntoComponent, Child2: IntoComponent>
     IntoComponent for (Parent, (Child0, Child1, Child2))
 where
-    Parent::Context:
-        AsRef<Document> + AsRef<Child0::Context> + AsRef<Child1::Context> + AsRef<Child2::Context>,
+    Parent::Context: AsRef<Child0::Context> + AsRef<Child1::Context> + AsRef<Child2::Context>,
 {
     type Context = Parent::Context;
     type Component = Parent::Component;

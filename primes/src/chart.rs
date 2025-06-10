@@ -235,11 +235,11 @@ pub struct Chart {
 impl Chart {
     pub fn new(system: &Rc<System>) -> Result<Self> {
         let document = &system.document;
-        let title = h1(["chart__title"], "Prime factors of 1: []").into_component(document)?;
+        let title = document.h1(["chart__title"], "Prime factors of 1: []")?;
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
-        let caption = p(["chart__caption"], ()).into_component(document)?;
-        let root = div(["chart"], (&title, &canvas, &caption)).into_component(document)?;
+        let caption = document.p(["chart__caption"], ())?;
+        let root = document.div(["chart"], (&title, &canvas, &caption))?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);

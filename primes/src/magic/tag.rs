@@ -5,12 +5,12 @@
 //! The array of class names currently has a maximum size of 1. To specify
 //! multiple class names, separate them with spaces.
 
-use web_sys::{Document, Element};
+use crate::Result;
 
 use super::component::IntoComponent;
 
 pub trait Class {
-    type Output: IntoComponent<Context = Document, Component = Element>;
+    type Output: IntoComponent;
 
     fn class(self, tag: &'static str) -> Self::Output;
 }
@@ -33,7 +33,7 @@ impl<'a> Class for [&'a str; 1] {
 }
 
 pub trait Content<T> {
-    type Output;
+    type Output: IntoComponent;
 
     fn content(self, parent: T) -> Self::Output;
 }
@@ -55,7 +55,10 @@ impl<P: IntoComponent> Content<P> for () {
     }
 }
 
-impl<P: IntoComponent, C: IntoComponent> Content<P> for (C,) {
+impl<P: IntoComponent, C: IntoComponent> Content<P> for (C,)
+where
+    P::Context: AsRef<C::Context>,
+{
     type Output = (P, Self);
 
     fn content(self, parent: P) -> Self::Output {
@@ -63,7 +66,10 @@ impl<P: IntoComponent, C: IntoComponent> Content<P> for (C,) {
     }
 }
 
-impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent> Content<P> for (C0, C1) {
+impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent> Content<P> for (C0, C1)
+where
+    P::Context: AsRef<C0::Context> + AsRef<C1::Context>,
+{
     type Output = (P, Self);
 
     fn content(self, parent: P) -> Self::Output {
@@ -73,6 +79,8 @@ impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent> Content<P> for (C0,
 
 impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent, C2: IntoComponent> Content<P>
     for (C0, C1, C2)
+where
+    P::Context: AsRef<C0::Context> + AsRef<C1::Context> + AsRef<C2::Context>,
 {
     type Output = (P, Self);
 
@@ -82,17 +90,41 @@ impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent, C2: IntoComponent> 
 }
 
 macro_rules! tag_with_class_and_text {
-    ($tag:ident) => {
+    ($trait:ident, $tag:ident) => {
+        #[allow(dead_code)]
         pub fn $tag<C: Class, Co: Content<C::Output>>(class: C, content: Co) -> Co::Output {
             content.content(class.class(stringify!(tag)))
+        }
+
+        #[allow(dead_code)]
+        pub trait $trait<C: Class, Co: Content<C::Output>> {
+            fn $tag(
+                &self,
+                class: C,
+                content: Co,
+            ) -> Result<<Co::Output as IntoComponent>::Component>;
+        }
+
+        impl<C: Class, Co: Content<C::Output>, T> $trait<C, Co> for T
+        where
+            T: AsRef<<Co::Output as IntoComponent>::Context>,
+        {
+            fn $tag(
+                &self,
+                class: C,
+                content: Co,
+            ) -> Result<<Co::Output as IntoComponent>::Component> {
+                $tag(class, content).into_component(self.as_ref())
+            }
         }
     };
 }
 
-tag_with_class_and_text!(div);
-tag_with_class_and_text!(h1);
-tag_with_class_and_text!(p);
+tag_with_class_and_text!(CreateDiv, div);
+tag_with_class_and_text!(CreateH1, h1);
+tag_with_class_and_text!(CreateP, p);
 
+#[allow(unused_imports)]
 pub mod prelude {
-    pub use super::{div, h1, p};
+    pub use super::{CreateDiv, CreateH1, CreateP, div, h1, p};
 }
