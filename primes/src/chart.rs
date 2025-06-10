@@ -94,10 +94,10 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
     Ok(context)
 }
 
-fn prime_factor(mut n: u32) -> Vec<u32> {
-    let mut powers = Vec::new();
+fn prime_factor(powers: &mut Vec<u32>, mut n: u32) {
+    powers.clear();
     if n < 2 {
-        return powers;
+        return;
     }
     for p in rk_primes::Sieve::new().primes() {
         let mut e = 0;
@@ -107,7 +107,7 @@ fn prime_factor(mut n: u32) -> Vec<u32> {
         }
         powers.push(e);
         if n == 1 {
-            return powers;
+            return;
         }
     }
     unreachable!()
@@ -174,15 +174,14 @@ struct Histogram {
 
 impl Histogram {
     fn with_value(value: u32) -> Self {
-        Histogram {
-            powers: prime_factor(value),
-            value,
-        }
+        let mut powers = Vec::new();
+        prime_factor(&mut powers, value);
+        Histogram { powers, value }
     }
 
     fn incr(&mut self) -> &[u32] {
         self.value += 1;
-        self.powers = prime_factor(self.value);
+        prime_factor(&mut self.powers, self.value);
         &self.powers
     }
 
