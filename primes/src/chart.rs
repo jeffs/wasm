@@ -20,7 +20,8 @@ use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
 use crate::js::prelude::*;
-use crate::magic::IntoComponent;
+use crate::magic::prelude::*;
+use crate::magic::tag::prelude::*;
 use crate::{Error, Result, System};
 
 const CANVAS_WIDTH: u32 = 800;
@@ -234,30 +235,29 @@ pub struct Chart {
 impl Chart {
     pub fn new(system: &Rc<System>) -> Result<Self> {
         let document = &system.document;
-        let title = (("h1", "chart__title"), "Prime factors of 1: []").into_component(document)?;
+        let title = h1(["chart__title"], "Prime factors of 1: []").into_component(document)?;
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
-
-        let caption = ("p", "chart__caption").into_component(document)?;
-
+        let caption = p(["chart__caption"], ()).into_component(document)?;
         let root = (("div", "chart"), (&title, &canvas, &caption)).into_component(document)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
+        let raf_system = Rc::clone(system);
 
         let mut factors = Vec::new();
         let mut sieve = rk_primes::Sieve::new();
 
         let mut throttle = Throttle::new(THROTTLE);
         let mut histogram = Histogram::with_value(1);
-        let raf_system = Rc::clone(system);
+
         let perf = system
             .window
             .performance()
             .ok_or(Error::Str("no Performance API"))?;
         let mut old_now = perf.now();
-
         let mut old_counter = throttle.counter;
+
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
             if throttle.skip() {
