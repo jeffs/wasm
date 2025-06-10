@@ -55,7 +55,25 @@ impl<P: IntoComponent> Content<P> for () {
     }
 }
 
-impl<P: IntoComponent, C: IntoComponent> Content<P> for C {
+impl<P: IntoComponent, C: IntoComponent> Content<P> for (C,) {
+    type Output = (P, Self);
+
+    fn content(self, parent: P) -> Self::Output {
+        (parent, self)
+    }
+}
+
+impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent> Content<P> for (C0, C1) {
+    type Output = (P, Self);
+
+    fn content(self, parent: P) -> Self::Output {
+        (parent, self)
+    }
+}
+
+impl<P: IntoComponent, C0: IntoComponent, C1: IntoComponent, C2: IntoComponent> Content<P>
+    for (C0, C1, C2)
+{
     type Output = (P, Self);
 
     fn content(self, parent: P) -> Self::Output {
@@ -71,9 +89,10 @@ macro_rules! tag_with_class_and_text {
     };
 }
 
+tag_with_class_and_text!(div);
 tag_with_class_and_text!(h1);
 tag_with_class_and_text!(p);
 
 pub mod prelude {
-    pub use super::{h1, p};
+    pub use super::{div, h1, p};
 }

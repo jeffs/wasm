@@ -239,7 +239,7 @@ impl Chart {
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
         let caption = p(["chart__caption"], ()).into_component(document)?;
-        let root = (("div", "chart"), (&title, &canvas, &caption)).into_component(document)?;
+        let root = div(["chart"], (&title, &canvas, &caption)).into_component(document)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
