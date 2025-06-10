@@ -17,7 +17,9 @@ use core::cell::RefCell;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
+use web_sys::{
+    CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Performance, Window,
+};
 
 use crate::js::prelude::*;
 use crate::magic::prelude::*;
@@ -228,6 +230,40 @@ impl Throttle {
     }
 }
 
+struct PerfCounter {
+    clock: Performance,
+    /// Milliseconds.
+    start: f64,
+    ticks: u32,
+    lap_ticks: u32,
+}
+
+impl PerfCounter {
+    fn start(window: &Window, lap_ticks: u32) -> Result<PerfCounter> {
+        let clock = window
+            .performance()
+            .ok_or(Error::Str("no Performance API"))?;
+        Ok(PerfCounter {
+            start: clock.now(),
+            clock,
+            ticks: 0,
+            lap_ticks,
+        })
+    }
+
+    fn tick(&mut self) -> Option<f64> {
+        self.ticks += 1;
+        if self.ticks % self.lap_ticks != 0 {
+            return None;
+        }
+        let now = self.clock.now();
+        let average = f64::from(self.ticks * 1000) / (now - self.start);
+        self.ticks = 0;
+        self.start = now;
+        Some(average)
+    }
+}
+
 pub struct Chart {
     pub root: Element,
 }
@@ -242,45 +278,38 @@ impl Chart {
         let title = document.h1(["chart__title"], "Prime factors of 1: []")?;
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
-        let caption = document.p(["chart__caption"], ())?;
+        let caption = document.p(["chart__caption"], "FPS:")?;
         let root = document.div(["chart"], (&title, &canvas, &caption))?;
+
+        let mut throttle = Throttle::new(THROTTLE);
+        let mut histogram = Histogram::with_value(1);
+        let mut perf = PerfCounter::start(&system.window, 60)?;
+
+        let mut factors = Vec::new();
+        let mut sieve = rk_primes::Sieve::new();
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
         let raf_system = Rc::clone(system);
 
-        let mut factors = Vec::new();
-        let mut sieve = rk_primes::Sieve::new();
-
-        let mut throttle = Throttle::new(THROTTLE);
-        let mut histogram = Histogram::with_value(1);
-
-        let perf = system
-            .window
-            .performance()
-            .ok_or(Error::Str("no Performance API"))?;
-        let mut old_now = perf.now();
-        let mut old_counter = throttle.counter;
-
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
+            if let Some(fps) = perf.tick() {
+                caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
+            }
+
             if throttle.skip() {
                 return;
             }
 
-            let now = perf.now();
-            let fps = f64::from(throttle.counter - old_counter) * 1000.0 / (now - old_now);
-            old_counter = throttle.counter;
-            old_now = now;
-            caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
-
             histogram.clear(&context);
             histogram.incr();
+            histogram.fill(&context);
+
             let value = histogram.value;
             factors.clear();
             factors.extend(sieve.factors(value));
             title.set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
-            histogram.fill(&context);
         }));
 
         request_animation_frame(&system.window, raf_cb.borrow().as_ref().unwrap());

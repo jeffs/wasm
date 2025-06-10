@@ -93,7 +93,7 @@ macro_rules! tag_with_class_and_text {
     ($trait:ident, $tag:ident) => {
         #[allow(dead_code)]
         pub fn $tag<C: Class, Co: Content<C::Output>>(class: C, content: Co) -> Co::Output {
-            content.content(class.class(stringify!(tag)))
+            content.content(class.class(stringify!($tag)))
         }
 
         #[allow(dead_code)]
