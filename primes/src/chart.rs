@@ -13,12 +13,17 @@
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
 
-use std::{cell::RefCell, rc::Rc};
+use core::cell::RefCell;
+use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
+use web_sys::{
+    CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Performance, Window,
+};
 
 use crate::js::prelude::*;
+use crate::magic::prelude::*;
+use crate::magic::tag::prelude::*;
 use crate::{Error, Result, System};
 
 const CANVAS_WIDTH: u32 = 800;
@@ -74,10 +79,8 @@ const fn u32_to_usize(value: u32) -> usize {
 }
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    let canvas = document
-        .create_element("canvas")?
-        .dyn_cast::<HtmlCanvasElement>()?;
-    canvas.set_class_name("chart__canvas");
+    let canvas = ("canvas", "chart__canvas").into_component(document)?;
+    let canvas = canvas.dyn_cast::<HtmlCanvasElement>()?;
     canvas.set_width(CANVAS_WIDTH);
     canvas.set_height(CANVAS_HEIGHT);
     Ok(canvas)
@@ -91,10 +94,10 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
     Ok(context)
 }
 
-fn prime_factor(mut n: u32) -> Vec<u32> {
-    let mut powers = Vec::new();
+fn prime_factor(powers: &mut Vec<u32>, mut n: u32) {
+    powers.clear();
     if n < 2 {
-        return powers;
+        return;
     }
     for p in rk_primes::Sieve::new().primes() {
         let mut e = 0;
@@ -104,7 +107,7 @@ fn prime_factor(mut n: u32) -> Vec<u32> {
         }
         powers.push(e);
         if n == 1 {
-            return powers;
+            return;
         }
     }
     unreachable!()
@@ -171,15 +174,14 @@ struct Histogram {
 
 impl Histogram {
     fn with_value(value: u32) -> Self {
-        Histogram {
-            powers: prime_factor(value),
-            value,
-        }
+        let mut powers = Vec::new();
+        prime_factor(&mut powers, value);
+        Histogram { powers, value }
     }
 
     fn incr(&mut self) -> &[u32] {
         self.value += 1;
-        self.powers = prime_factor(self.value);
+        prime_factor(&mut self.powers, self.value);
         &self.powers
     }
 
@@ -227,60 +229,86 @@ impl Throttle {
     }
 }
 
+struct PerfCounter {
+    clock: Performance,
+    /// Milliseconds.
+    start: f64,
+    ticks: u32,
+    lap_ticks: u32,
+}
+
+impl PerfCounter {
+    fn start(window: &Window, lap_ticks: u32) -> Result<PerfCounter> {
+        let clock = window
+            .performance()
+            .ok_or(Error::Str("no Performance API"))?;
+        Ok(PerfCounter {
+            start: clock.now(),
+            clock,
+            ticks: 0,
+            lap_ticks,
+        })
+    }
+
+    fn tick(&mut self) -> Option<f64> {
+        self.ticks += 1;
+        if self.ticks % self.lap_ticks != 0 {
+            return None;
+        }
+        let now = self.clock.now();
+        let average = f64::from(self.ticks * 1000) / (now - self.start);
+        self.ticks = 0;
+        self.start = now;
+        Some(average)
+    }
+}
+
 pub struct Chart {
     pub root: Element,
 }
 
 impl Chart {
+    /// For more complex pages, animation could start and stop as the component
+    /// is added or removed from the DOM, as detected by [Mutation Observers](
+    /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
+    /// ).
     pub fn new(system: &Rc<System>) -> Result<Self> {
-        let title = system.document.create_element("h1")?;
-        title.set_class_name("chart__title");
-        title.set_text_content(Some("Prime factors of 1: []"));
-
-        let canvas = new_canvas(&system.document)?;
+        let document = &system.document;
+        let title = document.h1(["chart__title"], "Prime factors of 1: []")?;
+        let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
+        let caption = document.p(["chart__caption"], "FPS:")?;
+        let root = document.div(["chart"], (&title, &canvas, &caption))?;
 
-        let caption = system.document.create_element("p")?;
-        caption.set_class_name("chart__caption");
-
-        let root = system.document.create_element("div")?;
-        root.set_class_name("chart");
-        root.append_with_node_3(&title, &canvas, &caption)?;
-
-        let render = Rc::new(RefCell::new(None));
-        let raf_cb = Rc::clone(&render);
+        let mut throttle = Throttle::new(THROTTLE);
+        let mut histogram = Histogram::with_value(1);
+        let mut perf = PerfCounter::start(&system.window, 60)?;
 
         let mut factors = Vec::new();
         let mut sieve = rk_primes::Sieve::new();
 
-        let mut throttle = Throttle::new(THROTTLE);
-        let mut histogram = Histogram::with_value(1);
+        let render = Rc::new(RefCell::new(None));
+        let raf_cb = Rc::clone(&render);
         let raf_system = Rc::clone(system);
-        let perf = system
-            .window
-            .performance()
-            .ok_or_else(|| Error::Str("no Performance API"))?;
-        let mut old_now = perf.now();
-        let mut old_counter = throttle.counter;
+
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
+            if let Some(fps) = perf.tick() {
+                caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
+            }
+
             if throttle.skip() {
                 return;
             }
 
-            let now = perf.now();
-            let fps = f64::from(throttle.counter - old_counter) * 1000.0 / (now - old_now);
-            old_counter = throttle.counter;
-            old_now = now;
-            caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
-
             histogram.clear(&context);
             histogram.incr();
+            histogram.fill(&context);
+
             let value = histogram.value;
             factors.clear();
             factors.extend(sieve.factors(value));
             title.set_text_content(Some(&format!("Prime factors of {value}: {factors:?}")));
-            histogram.fill(&context);
         }));
 
         request_animation_frame(&system.window, raf_cb.borrow().as_ref().unwrap());
