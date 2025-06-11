@@ -1,11 +1,9 @@
 use std::rc::Rc;
 
-use primes as lib;
-
-fn main_imp() -> lib::Result<()> {
+fn main_imp() -> primes::Result<()> {
     console_error_panic_hook::set_once();
-    let system = Rc::new(lib::System::new()?);
-    let app = Box::new(lib::App::new(&system)?);
+    let system = Rc::new(primes::System::new()?);
+    let app = Box::new(primes::App::new(&system)?);
     system.body.append_child(&app.root)?;
     Box::leak(app);
     Ok(())
