@@ -87,7 +87,7 @@ fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
 fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
     let context = canvas
         .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
-        .ok_or(Error::Str("canvas should have 2d context"))?
+        .ok_or(Error::Context2d)?
         .dyn_cast::<CanvasRenderingContext2d>()?;
     Ok(context)
 }
@@ -223,15 +223,14 @@ impl Chart {
         let title = document.h1(["chart__title"], "1: []")?;
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
-        let caption = document.p(["chart__caption"], ())?;
-        let root = document.div(["chart"], (&title, &canvas, &caption))?;
+
+        let mut fps = perf::components::Fps::new(&system.window, document)?;
+        fps.as_ref().set_class_name("chart__caption");
+
+        let root = document.div(["chart"], (&title, &canvas, fps.as_ref()))?;
 
         let mut throttle = perf::Throttle::new(THROTTLE);
         let mut histogram = Histogram::with_value(1);
-        let mut counter = perf::Counter::try_start(&system.window, 60);
-        if counter.is_some() {
-            caption.set_text_content(Some("FPS:"));
-        }
 
         let mut factors = Vec::new();
         let mut sieve = rk_primes::Sieve::new();
@@ -242,10 +241,7 @@ impl Chart {
 
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
-            if let Some(fps) = counter.as_mut().and_then(perf::Counter::tick) {
-                caption.set_text_content(Some(&format!("FPS: {fps:.1}")));
-            }
-
+            fps.tick();
             if throttle.skip() {
                 return;
             }
