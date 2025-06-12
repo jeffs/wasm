@@ -4,7 +4,7 @@ use web_sys::{Document, Element, Window};
 
 use crate::Counter;
 
-/// Update @ ~2 Hz when [`Fps::tick`] is called from animation frames.
+/// Update @ ~1 Hz when [`Fps::tick`] is called from animation frames @ 60 Hz.
 const LAP_TICKS: u32 = 30;
 
 #[derive(Debug)]

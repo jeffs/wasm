@@ -30,7 +30,7 @@ use crate::{Error, Result, System};
 
 /// Increase this number to slow the animation. The canvas updates on every Nth
 /// frame; so, at 60fps, a throttle of 60 updates about once per second.
-pub const THROTTLE: u32 = 100;
+pub const THROTTLE: u32 = 180;
 
 const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
 
@@ -89,6 +89,7 @@ impl Chart {
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
             fps.tick();
+
             if throttle.skip() {
                 return;
             }
