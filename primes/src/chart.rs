@@ -8,14 +8,18 @@
 //! # TODO
 //!
 //! * [] Add a Play/Pause and Fast Forward buttons to the UI
-//! * [] Factor out FPS component
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
 
+mod fill;
+mod histogram;
+
 use core::cell::RefCell;
 use std::rc::Rc;
 
+use fill::THROTTLE;
+use histogram::{CANVAS_HEIGHT, CANVAS_WIDTH, Histogram};
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
@@ -23,58 +27,6 @@ use crate::js::prelude::*;
 use crate::magic::prelude::*;
 use crate::magic::tag::prelude::*;
 use crate::{Error, Result, System};
-
-const CANVAS_WIDTH: u32 = 800;
-const CANVAS_HEIGHT: u32 = 320;
-
-const GAP: f64 = 2.0;
-
-/// Increase this number to slow the animation. The canvas updates on every Nth
-/// frame; so, at 60fps, a throttle of 60 updates about once per second.
-const THROTTLE: u32 = 100;
-
-const FILL_STYLE: FillStyle = FillStyle::Auto;
-
-const COLORS: [&str; 14] = [
-    "#FF0000", //  2,  47 Red
-    "#00FF00", //  3,  53 Lime
-    "#0000FF", //  5,  59 Blue
-    "#FFFF00", //  7,  61 Yellow
-    "#00FFFF", // 11,  67 Cyan
-    "#FF00FF", // 13,  71 Magenta
-    "#C0C0C0", // 17,  73 Silver
-    "#808080", // 19,  79 Gray
-    "#800000", // 23,  83 Maroon
-    "#808000", // 29,  89 Olive
-    "#008000", // 31,  97 Green
-    "#800080", // 37, 101 Purple
-    "#008080", // 41, 103 Teal
-    "#000080", // 43, 107 Navy
-];
-
-#[allow(dead_code)]
-enum FillStyle {
-    /// Color when throttled, and Grayscale otherwise, because flashing colors
-    /// are jarring.
-    Auto,
-    Color,
-    Grayscale,
-}
-
-impl FillStyle {
-    fn get(&self, index: usize) -> String {
-        match self {
-            FillStyle::Color => COLORS[index % COLORS.len()].to_owned(),
-            FillStyle::Auto if THROTTLE > 1 => COLORS[index % COLORS.len()].to_owned(),
-            _ => format!("#{i:02x}{i:02x}{i:02x}", i = 15 + index % 16 * 14),
-        }
-    }
-}
-
-const fn u32_to_usize(value: u32) -> usize {
-    const { assert!(size_of::<u32>() <= size_of::<usize>()) }
-    value as usize
-}
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     let canvas = ("canvas", "chart__canvas").into_component(document)?;
@@ -90,117 +42,6 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
         .ok_or(Error::Context2d)?
         .dyn_cast::<CanvasRenderingContext2d>()?;
     Ok(context)
-}
-
-fn prime_factor(powers: &mut Vec<u32>, mut n: u32) {
-    powers.clear();
-    if n < 2 {
-        return;
-    }
-    for p in rk_primes::Sieve::new().primes() {
-        let mut e = 0;
-        while n % p == 0 {
-            n /= p;
-            e += 1;
-        }
-        powers.push(e);
-        if n == 1 {
-            return;
-        }
-    }
-    unreachable!()
-}
-
-struct Rectangle {
-    x: f64,
-    y: f64,
-    w: f64,
-    h: f64,
-}
-
-struct Rectangles<'a> {
-    powers: &'a [u32],
-    height: f64,
-    column: u32,
-}
-
-impl Rectangles<'_> {
-    fn new(powers: &[u32]) -> Rectangles {
-        let max_power = powers.iter().copied().max().unwrap_or(1);
-        Rectangles {
-            powers,
-            height: (f64::from(CANVAS_HEIGHT * 1000 / max_power) / 1000.0).round(),
-            column: 0,
-        }
-    }
-}
-
-impl Iterator for Rectangles<'_> {
-    type Item = Vec<Rectangle>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let length = self.powers.len();
-        let index = u32_to_usize(self.column);
-        if index == length {
-            return None;
-        }
-
-        let length = u32::try_from(length).unwrap();
-
-        let w = f64::from(CANVAS_WIDTH * 1000 / length) / 1000.0;
-        let x = f64::from(self.column) * w;
-        let rects = (0..self.powers[index])
-            .map(|p| Rectangle {
-                x: (x + GAP).round(),
-                y: f64::from(p) * self.height + GAP,
-                w: (w - GAP * 2.0).max(0.0).round(),
-                h: (self.height - GAP * 2.0).max(0.0),
-            })
-            .collect();
-
-        self.column += 1;
-
-        Some(rects)
-    }
-}
-
-#[derive(Default)]
-struct Histogram {
-    powers: Vec<u32>,
-    value: u32,
-}
-
-impl Histogram {
-    fn with_value(value: u32) -> Self {
-        let mut powers = Vec::new();
-        prime_factor(&mut powers, value);
-        Histogram { powers, value }
-    }
-
-    fn incr(&mut self) -> &[u32] {
-        self.value += 1;
-        prime_factor(&mut self.powers, self.value);
-        &self.powers
-    }
-
-    fn clear(&self, context: &CanvasRenderingContext2d) {
-        context.begin_path();
-        for rect in Rectangles::new(&self.powers).flatten() {
-            context.clear_rect(rect.x, rect.y, rect.w, rect.h);
-        }
-        context.stroke();
-    }
-
-    fn fill(&self, context: &CanvasRenderingContext2d) {
-        context.begin_path();
-        for (index, rects) in Rectangles::new(&self.powers).enumerate() {
-            context.set_fill_style_str(FILL_STYLE.get(index).as_str());
-            for rect in rects {
-                context.fill_rect(rect.x, rect.y, rect.w, rect.h);
-            }
-        }
-        context.stroke();
-    }
 }
 
 fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
@@ -250,7 +91,7 @@ impl Chart {
             histogram.incr();
             histogram.fill(&context);
 
-            let value = histogram.value;
+            let value = histogram.value();
             factors.clear();
             factors.extend(sieve.factors(value));
             title.set_text_content(Some(&format!("{value}: {factors:?}")));
