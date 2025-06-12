@@ -1,7 +1,3 @@
-/// Increase this number to slow the animation. The canvas updates on every Nth
-/// frame; so, at 60fps, a throttle of 60 updates about once per second.
-pub const THROTTLE: u32 = 100;
-
 const COLORS: [&str; 14] = [
     "#FF0000", //  2,  47 Red
     "#00FF00", //  3,  53 Lime
@@ -20,19 +16,22 @@ const COLORS: [&str; 14] = [
 ];
 
 #[allow(dead_code)]
+#[derive(Clone, Copy)]
 pub enum FillStyle {
     /// Color when throttled, and Grayscale otherwise, because flashing colors
     /// are jarring.
-    Auto,
+    Auto {
+        throttle: u32,
+    },
     Color,
     Grayscale,
 }
 
 impl FillStyle {
-    pub fn get(&self, index: usize) -> String {
+    pub fn get(self, index: usize) -> String {
         match self {
             FillStyle::Color => COLORS[index % COLORS.len()].to_owned(),
-            FillStyle::Auto if THROTTLE > 1 => COLORS[index % COLORS.len()].to_owned(),
+            FillStyle::Auto { throttle } if throttle > 1 => COLORS[index % COLORS.len()].to_owned(),
             _ => format!("#{i:02x}{i:02x}{i:02x}", i = 15 + index % 16 * 14),
         }
     }

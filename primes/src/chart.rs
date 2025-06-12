@@ -18,7 +18,7 @@ mod histogram;
 use core::cell::RefCell;
 use std::rc::Rc;
 
-use fill::THROTTLE;
+use fill::FillStyle;
 use histogram::{CANVAS_HEIGHT, CANVAS_WIDTH, Histogram};
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
@@ -27,6 +27,12 @@ use crate::js::prelude::*;
 use crate::magic::prelude::*;
 use crate::magic::tag::prelude::*;
 use crate::{Error, Result, System};
+
+/// Increase this number to slow the animation. The canvas updates on every Nth
+/// frame; so, at 60fps, a throttle of 60 updates about once per second.
+pub const THROTTLE: u32 = 100;
+
+const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     let canvas = ("canvas", "chart__canvas").into_component(document)?;
@@ -89,7 +95,7 @@ impl Chart {
 
             histogram.clear(&context);
             histogram.incr();
-            histogram.fill(&context);
+            histogram.fill(&context, FILL_STYLE);
 
             let value = histogram.value();
             factors.clear();

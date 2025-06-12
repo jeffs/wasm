@@ -4,8 +4,6 @@ use super::fill::FillStyle;
 
 pub const CANVAS_WIDTH: u32 = 800;
 pub const CANVAS_HEIGHT: u32 = 320;
-
-const FILL_STYLE: FillStyle = FillStyle::Auto;
 const GAP: f64 = 2.0;
 
 const fn u32_to_usize(value: u32) -> usize {
@@ -118,10 +116,10 @@ impl Histogram {
         context.stroke();
     }
 
-    pub fn fill(&self, context: &CanvasRenderingContext2d) {
+    pub fn fill(&self, context: &CanvasRenderingContext2d, style: FillStyle) {
         context.begin_path();
         for (index, rects) in Rectangles::new(&self.powers).enumerate() {
-            context.set_fill_style_str(FILL_STYLE.get(index).as_str());
+            context.set_fill_style_str(style.get(index).as_str());
             for rect in rects {
                 context.fill_rect(rect.x, rect.y, rect.w, rect.h);
             }
