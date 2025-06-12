@@ -1,13 +1,7 @@
 # https://trunkrs.dev/configuration/
 
-# The directory served by GitHub Pages.
-dist = "../docs"
-
 [build]
-dist = "../docs"
-public_url = "https://jeffs.github.io/wasm/"
-release = true
-minify = "always"
+minify = "on_release"
 
 [serve]
 addresses = ["0.0.0.0"]

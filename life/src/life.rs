@@ -228,10 +228,6 @@ pub struct Life {
 
 impl Life {
     pub fn new(system: &Rc<System>) -> Result<Self> {
-        let title = system.document.create_element("h1")?;
-        title.set_class_name("life__title");
-        title.set_text_content(Some("Hello, Life."));
-
         let size = RectangleSize {
             width: 64,
             height: 64,
@@ -245,7 +241,7 @@ impl Life {
 
         let root = system.document.create_element("div")?;
         root.set_class_name("life");
-        root.append_with_node_2(&title, &canvas)?;
+        root.append_with_node_1(&canvas)?;
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);

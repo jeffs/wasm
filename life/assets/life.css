@@ -7,10 +7,6 @@
   font-size: calc(var(--text-size) / 2);
 }
 
-.life__title {
-  color: var(--color1a);
-}
-
 .life__canvas {
   border: 1px solid;
 }
