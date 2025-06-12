@@ -77,7 +77,7 @@ impl Chart {
         let root = document.div(["chart"], (&title, &canvas, fps.as_ref()))?;
 
         let mut throttle = perf::Throttle::new(THROTTLE);
-        let mut histogram = Histogram::with_value(1);
+        let mut histogram = Histogram::new();
 
         let mut factors = Vec::new();
         let mut sieve = rk_primes::Sieve::new();
@@ -94,7 +94,7 @@ impl Chart {
             }
 
             histogram.clear(&context);
-            histogram.incr();
+            histogram.incr(&mut sieve);
             histogram.fill(&context, FILL_STYLE);
 
             let value = histogram.value();

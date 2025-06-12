@@ -1,3 +1,4 @@
+use rk_primes::Sieve;
 use web_sys::CanvasRenderingContext2d;
 
 use super::fill::FillStyle;
@@ -13,23 +14,19 @@ const fn u32_to_usize(value: u32) -> usize {
 
 /// Replaces `powers` with the exponents of all prime factors in `n`, including
 /// zeroes, up to the maximum prime factor.
-fn prime_factor(powers: &mut Vec<u32>, mut n: u32) {
+fn prime_factor(sieve: &mut Sieve, powers: &mut Vec<u32>, mut n: u32) {
     powers.clear();
-    if n < 2 {
-        return;
-    }
-    for p in rk_primes::Sieve::new().primes() {
+    for p in sieve.primes() {
+        if n < 2 {
+            break;
+        }
         let mut e = 0;
         while n % p == 0 {
             n /= p;
             e += 1;
         }
         powers.push(e);
-        if n == 1 {
-            return;
-        }
     }
-    unreachable!()
 }
 
 struct Rectangle {
@@ -85,26 +82,26 @@ impl Iterator for Rectangles<'_> {
     }
 }
 
-#[derive(Default)]
 pub struct Histogram {
     powers: Vec<u32>,
     value: u32,
 }
 
 impl Histogram {
-    pub fn with_value(value: u32) -> Self {
-        let mut powers = Vec::new();
-        prime_factor(&mut powers, value);
-        Histogram { powers, value }
+    pub fn new() -> Self {
+        Histogram {
+            powers: Vec::new(),
+            value: 1,
+        }
     }
 
     pub fn value(&self) -> u32 {
         self.value
     }
 
-    pub fn incr(&mut self) -> &[u32] {
+    pub fn incr(&mut self, sieve: &mut Sieve) -> &[u32] {
         self.value += 1;
-        prime_factor(&mut self.powers, self.value);
+        prime_factor(sieve, &mut self.powers, self.value);
         &self.powers
     }
 
