@@ -1,10 +1,5 @@
-# https://trunkrs.dev/configuration/
-
-# For `trunk clean`.
-dist = "target/dist"
-
 [build]
-dist = "target/dist"
+minify = "on_release"
 
 [serve]
 addresses = ["0.0.0.0"]
