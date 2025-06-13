@@ -1,3 +1,4 @@
+use perf::components::FpsError;
 use wasm_bindgen::JsValue;
 
 #[derive(Debug)]
@@ -13,12 +14,12 @@ pub enum Error {
     /// The canvas could not provide a 2D drawing context.
     Context2d,
     /// The FPS component could not be instantiated.
-    Fps(perf::FpsError),
+    Fps(FpsError),
     JsValue(JsValue),
 }
 
-impl From<perf::FpsError> for Error {
-    fn from(value: perf::FpsError) -> Self {
+impl From<FpsError> for Error {
+    fn from(value: FpsError) -> Self {
         Error::Fps(value)
     }
 }
