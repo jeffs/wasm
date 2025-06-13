@@ -19,7 +19,7 @@ use core::cell::RefCell;
 use std::rc::Rc;
 
 use fill::FillStyle;
-use histogram::{CANVAS_HEIGHT, CANVAS_WIDTH, Histogram};
+use histogram::Histogram;
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
@@ -35,11 +35,9 @@ pub const THROTTLE: u32 = 180;
 const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    let canvas = ("canvas", "chart__canvas").into_component(document)?;
-    let canvas = canvas.dyn_cast::<HtmlCanvasElement>()?;
-    canvas.set_width(CANVAS_WIDTH);
-    canvas.set_height(CANVAS_HEIGHT);
-    Ok(canvas)
+    ("canvas", "chart__canvas")
+        .into_component(document)
+        .and_then(Element::dyn_cast::<HtmlCanvasElement>)
 }
 
 fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {

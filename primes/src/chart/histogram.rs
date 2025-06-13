@@ -1,15 +1,46 @@
 use rk_primes::Sieve;
-use web_sys::CanvasRenderingContext2d;
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
 use super::fill::FillStyle;
 
-pub const CANVAS_WIDTH: u32 = 800;
-pub const CANVAS_HEIGHT: u32 = 320;
-const GAP: f64 = 2.0;
+const GAP: u32 = 2;
 
+#[expect(dead_code)]
 const fn u32_to_usize(value: u32) -> usize {
     const { assert!(size_of::<u32>() <= size_of::<usize>()) }
     value as usize
+}
+
+#[cfg(target_arch = "wasm32")]
+const fn usize_to_u32(value: usize) -> u32 {
+    const { assert!(size_of::<usize>() <= size_of::<u32>()) }
+    value as u32
+}
+
+/// # Panics
+///
+/// Will panic on overflow.
+#[cfg(not(target_arch = "wasm32"))]
+#[expect(clippy::cast_possible_truncation)]
+const fn usize_to_u32(value: usize) -> u32 {
+    let output = value as u32;
+    assert!(output as usize == value, "overflow");
+    output
+}
+
+#[derive(Clone, Copy, Default)]
+struct Size {
+    height: u32,
+    width: u32,
+}
+
+impl Size {
+    fn of_canvas(canvas: &HtmlCanvasElement) -> Size {
+        Size {
+            height: canvas.height(),
+            width: canvas.width(),
+        }
+    }
 }
 
 /// Replaces `powers` with the exponents of all prime factors in `n`, including
@@ -36,48 +67,50 @@ struct Rectangle {
     h: f64,
 }
 
-struct Rectangles<'a> {
+struct Columns<'a> {
+    /// The exponents represented by these columns.
     powers: &'a [u32],
-    height: f64,
-    column: u32,
+    /// The size of each brick.
+    brick: Size,
+    /// The index in [`Self::powers`] of the next column to return.
+    index: usize,
 }
 
-impl Rectangles<'_> {
-    fn new(powers: &[u32]) -> Rectangles {
+impl Columns<'_> {
+    fn new(powers: &[u32], canvas: Size) -> Columns {
         let max_power = powers.iter().copied().max().unwrap_or(1);
-        Rectangles {
+        Columns {
             powers,
-            height: (f64::from(CANVAS_HEIGHT * 1000 / max_power) / 1000.0).round(),
-            column: 0,
+            brick: Size {
+                height: canvas.height.checked_div(max_power).unwrap_or_default(),
+                width: canvas
+                    .width
+                    .checked_div(usize_to_u32(powers.len()))
+                    .unwrap_or_default(),
+            },
+            index: 0,
         }
     }
 }
 
-impl Iterator for Rectangles<'_> {
+impl Iterator for Columns<'_> {
     type Item = Vec<Rectangle>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let length = self.powers.len();
-        let index = u32_to_usize(self.column);
-        if index == length {
+        if self.index == length {
             return None;
         }
-
-        let length = u32::try_from(length).unwrap();
-
-        let w = f64::from(CANVAS_WIDTH * 1000 / length) / 1000.0;
-        let x = f64::from(self.column) * w;
-        let rects = (0..self.powers[index])
+        let x = usize_to_u32(self.index) * self.brick.width;
+        let rects = (0..self.powers[self.index])
             .map(|p| Rectangle {
-                x: (x + GAP).round(),
-                y: f64::from(p) * self.height + GAP,
-                w: (w - GAP * 2.0).max(0.0).round(),
-                h: (self.height - GAP * 2.0).max(0.0),
+                x: f64::from(x + GAP),
+                y: f64::from(p * self.brick.height + GAP),
+                w: f64::from(self.brick.width.saturating_sub(GAP * 2)),
+                h: f64::from(self.brick.height.saturating_sub(GAP * 2)),
             })
             .collect();
-
-        self.column += 1;
-
+        self.index += 1;
         Some(rects)
     }
 }
@@ -105,20 +138,28 @@ impl Histogram {
         &self.powers
     }
 
+    /// Erases this histogram from the canvas.
     pub fn clear(&self, context: &CanvasRenderingContext2d) {
+        let Some(canvas) = context.canvas() else {
+            return;
+        };
         context.begin_path();
-        for rect in Rectangles::new(&self.powers).flatten() {
-            context.clear_rect(rect.x, rect.y, rect.w, rect.h);
+        for brick in Columns::new(&self.powers, Size::of_canvas(&canvas)).flatten() {
+            context.clear_rect(brick.x, brick.y, brick.w, brick.h);
         }
         context.stroke();
     }
 
+    /// Draws this histogram to the canvas.
     pub fn fill(&self, context: &CanvasRenderingContext2d, style: FillStyle) {
+        let Some(canvas) = context.canvas() else {
+            return;
+        };
         context.begin_path();
-        for (index, rects) in Rectangles::new(&self.powers).enumerate() {
+        for (index, column) in Columns::new(&self.powers, Size::of_canvas(&canvas)).enumerate() {
             context.set_fill_style_str(style.get(index).as_str());
-            for rect in rects {
-                context.fill_rect(rect.x, rect.y, rect.w, rect.h);
+            for brick in column {
+                context.fill_rect(brick.x, brick.y, brick.w, brick.h);
             }
         }
         context.stroke();

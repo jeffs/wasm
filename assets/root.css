@@ -3,7 +3,7 @@
   --topaz: hsl(200, 99%, 44%);
   --ebony: hsl(243, 44%, 8%);
 
-  --text-size: 16px;
+  --text-size: 48px;
 }
 
 html,
@@ -38,9 +38,17 @@ body {
 a {
   color: var(--topaz);
   text-decoration: none;
-  font-size: calc(var(--text-size) * 1.25);
 }
 
-nav li {
-  list-style-type: none;
+h1 {
+  font-size: var(--text-size);
+  text-align: center;
+}
+
+.nav__life {
+  list-style-type: "🐞";
+}
+
+.nav__primes {
+  list-style-type: "🧱";
 }
