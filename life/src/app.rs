@@ -10,7 +10,6 @@
 //! * [] Add an FPS counter
 //! * [] Buffer grid lines in an off-screen canvas
 //!   - <https://web.dev/articles/canvas-performance>
-//! * [] Disable transparency of the canvas
 //!   - Or, use a static image beneath the canvas
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
@@ -171,6 +170,14 @@ fn new_canvas(document: &Document, size: RectangleSize) -> Result<HtmlCanvasElem
     Ok(canvas)
 }
 
+fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
+    let context = canvas
+        .get_context_with_context_options("2d", &[("alpha", false)].into_js()?)?
+        .ok_or(Error::Str("canvas should have 2d context"))?
+        .dyn_cast::<CanvasRenderingContext2d>()?;
+    Ok(context)
+}
+
 fn draw_grid(context: &CanvasRenderingContext2d, RectangleSize { width, height }: RectangleSize) {
     context.begin_path();
     context.set_stroke_style_str(GRID_COLOR);
@@ -236,10 +243,7 @@ impl App {
         };
 
         let canvas = new_canvas(&system.document, size)?;
-        let context = canvas
-            .get_context("2d")?
-            .ok_or(Error::Str("canvas should have 2d context"))?
-            .dyn_cast::<CanvasRenderingContext2d>()?;
+        let context = get_context(&canvas)?;
 
         let root = system.document.create_element("div")?;
         root.append_with_node_1(&canvas)?;
