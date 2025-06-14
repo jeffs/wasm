@@ -1,8 +1,9 @@
+use wasm_bindgen::JsValue;
 use web_sys::{Document, Element, HtmlCanvasElement};
 
-use crate::Result;
-
 pub struct EmptyContext;
+
+pub type Result<T> = std::result::Result<T, JsValue>;
 
 impl AsRef<EmptyContext> for Document {
     fn as_ref(&self) -> &EmptyContext {
@@ -16,6 +17,9 @@ pub trait IntoComponent {
     /// The target component type.
     type Component: AsRef<Element>;
 
+    /// # Errors
+    ///
+    /// May return [`Err`] if DOM interaction fails.
     fn into_component(self, context: &Self::Context) -> Result<Self::Component>;
 }
 
@@ -38,6 +42,7 @@ impl IntoComponent for &Element {
     }
 }
 
+/// TODO: Make `HtmlCanvasElement` dependency feature-contingent.
 impl IntoComponent for &HtmlCanvasElement {
     type Context = EmptyContext;
     type Component = Self;
@@ -53,7 +58,7 @@ impl IntoComponent for (&str,) {
     type Component = Element;
 
     fn into_component(self, document: &Self::Context) -> Result<Self::Component> {
-        Ok(document.create_element(self.0)?)
+        document.create_element(self.0)
     }
 }
 

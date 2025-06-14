@@ -5,9 +5,7 @@
 //! The array of class names currently has a maximum size of 1. To specify
 //! multiple class names, separate them with spaces.
 
-use crate::Result;
-
-use super::component::IntoComponent;
+use super::component::{IntoComponent, Result};
 
 pub trait Class {
     type Output: IntoComponent;
@@ -96,8 +94,10 @@ macro_rules! tag_with_class_and_text {
             content.content(class.class(stringify!($tag)))
         }
 
-        #[allow(dead_code)]
         pub trait $trait<C: Class, Co: Content<C::Output>> {
+            /// # Errors
+            ///
+            /// May return [`Err`] if DOM interaction fails.
             fn $tag(
                 &self,
                 class: C,

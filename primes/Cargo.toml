@@ -11,6 +11,7 @@ wasm-bindgen = "0.2.100"
 rk-primes = { git = "https://github.com/jeffs/rust-kart", package = "rk-primes"}
 
 perf = { path = "../perf" }
+magic = { path = "../magic" }
 
 [dependencies.web-sys]
 version = "0.3.77"
