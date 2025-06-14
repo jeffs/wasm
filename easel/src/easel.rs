@@ -29,10 +29,10 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
 }
 
 #[must_use]
-pub fn canvas_size(canvas: &HtmlCanvasElement) -> Size {
+pub fn canvas_size(canvas: impl AsRef<HtmlCanvasElement>) -> Size {
     Size {
-        height: canvas.height(),
-        width: canvas.width(),
+        height: canvas.as_ref().height(),
+        width: canvas.as_ref().width(),
     }
 }
 
