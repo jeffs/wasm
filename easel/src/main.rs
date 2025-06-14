@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use easel::{self, Easel, Result};
+use easel::{Easel, Result};
 use system::System;
 use web_sys::{CanvasRenderingContext2d, Element};
 

@@ -14,7 +14,7 @@ use crate::{Error, Result, System};
 pub const THROTTLE: u32 = 1;
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    Ok(("canvas", "primes-chart__canvas")
+    Ok(("canvas", "easel-canvas")
         .into_component(document)
         .and_then(Element::dyn_cast::<HtmlCanvasElement>)?)
 }
@@ -33,6 +33,15 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
         .expect("requesting animation frame");
 }
 
+/// A component that holds a canvas, along with a status bar including a caption
+/// and an FPS counter.
+///
+/// # TODO
+///
+/// Automatically play and pause animation as the component is added
+/// or removed from the DOM, as detected by [Mutation Observers](
+/// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers
+/// ).
 pub struct Easel {
     root: Element,
     system: Rc<System>,
@@ -47,13 +56,6 @@ impl Easel {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    ///
-    /// # TODO
-    ///
-    /// For more complex pages, animation could start and stop as the component
-    /// is added or removed from the DOM, as detected by [Mutation Observers](
-    /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
-    /// ).
     pub fn new<F: FnMut(&CanvasRenderingContext2d, &Element) + 'static>(
         system: Rc<System>,
         mut render: F,
@@ -63,10 +65,9 @@ impl Easel {
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
 
-        // Tracks and displays the number of frames per second animated.
         let mut fps = Fps::new(&system.window, document)?;
         let caption = document.caption([], ())?;
-        let status = document.div(["primes-chart__status"], (&caption, fps.root()))?;
+        let status = document.div(["easel-status"], (&caption, fps.root()))?;
 
         let root = document.div([], (canvas.as_ref(), &status))?;
 
@@ -78,12 +79,11 @@ impl Easel {
         *animate.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             if let Some(cb) = raf_cb.borrow().as_ref() {
                 request_animation_frame(&raf_system.window, cb);
+                fps.tick();
+                if !throttle.skip() {
+                    render(&context, &caption);
+                }
             }
-            fps.tick();
-            if throttle.skip() {
-                return;
-            }
-            render(&context, &caption);
         }));
 
         Ok(Easel {
