@@ -1,8 +1,11 @@
-pub mod error;
+mod error;
+mod size;
 
 use web_sys::{Document, HtmlElement, Window};
 
 pub use crate::error::{Error, Result};
+
+pub use size::{Size, u32_to_usize, usize_to_u32};
 
 pub struct System {
     pub window: Window,

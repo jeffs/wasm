@@ -2,6 +2,7 @@ use core::cell::RefCell;
 use std::rc::Rc;
 
 use perf::components::Fps;
+use system::Size;
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
@@ -25,6 +26,14 @@ fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
         .ok_or(Error::Context2d)?
         .dyn_cast::<CanvasRenderingContext2d>()?;
     Ok(context)
+}
+
+#[must_use]
+pub fn canvas_size(canvas: &HtmlCanvasElement) -> Size {
+    Size {
+        height: canvas.height(),
+        width: canvas.width(),
+    }
 }
 
 fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {

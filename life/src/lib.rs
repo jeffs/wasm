@@ -21,26 +21,14 @@
 
 use std::{fmt, rc::Rc};
 
-use wasm_bindgen::prelude::*;
-use web_sys::{CanvasRenderingContext2d, Element, Window};
-
 use easel::Result;
+use system::{Size, u32_to_usize};
+use web_sys::{CanvasRenderingContext2d, Element};
 
 const CELL_SIZE: u32 = 5;
 const GRID_COLOR: &str = "#CCCCCC";
 const DEAD_COLOR: &str = "#FFFFFF";
 const LIVE_COLOR: &str = "#000000";
-
-const fn u32_to_usize(value: u32) -> usize {
-    const { assert!(size_of::<u32>() <= size_of::<usize>()) }
-    value as usize
-}
-
-#[derive(Copy, Clone)]
-struct RectangleSize {
-    width: u32,
-    height: u32,
-}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Cell {
@@ -58,7 +46,7 @@ impl Cell {
 }
 
 struct Universe {
-    size: RectangleSize,
+    size: Size,
     cells: Vec<Cell>,
 }
 
@@ -69,10 +57,6 @@ impl Universe {
 
     fn height(&self) -> u32 {
         self.size.height
-    }
-
-    fn _size(&self) -> RectangleSize {
-        self.size
     }
 
     fn get_index(&self, row: u32, column: u32) -> usize {
@@ -131,7 +115,7 @@ impl Universe {
         self.cells = next;
     }
 
-    pub fn with_size(size: RectangleSize) -> Universe {
+    pub fn with_size(size: Size) -> Universe {
         let cells = (0..size.width * size.height)
             .map(|i| {
                 if i % 2 == 0 || i % 7 == 0 {
@@ -158,7 +142,7 @@ impl fmt::Display for Universe {
     }
 }
 
-fn draw_grid(context: &CanvasRenderingContext2d, RectangleSize { width, height }: RectangleSize) {
+fn draw_grid(context: &CanvasRenderingContext2d, Size { width, height }: Size) {
     context.begin_path();
     context.set_stroke_style_str(GRID_COLOR);
 
@@ -202,12 +186,6 @@ fn draw_cells(context: &CanvasRenderingContext2d, universe: &Universe) {
     context.stroke();
 }
 
-fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
-    window
-        .request_animation_frame(f.as_ref().unchecked_ref())
-        .expect("requesting animation frame");
-}
-
 pub struct App {
     root: Element,
 }
@@ -218,7 +196,7 @@ impl App {
     /// Will return [`Err`] if DOM interaction fails.
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(_system: Rc<system::System>) -> Result<Self> {
-        // let size = RectangleSize {
+        // let size = Size {
         //     width: 64,
         //     height: 64,
         // };

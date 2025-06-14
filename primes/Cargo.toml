@@ -18,9 +18,5 @@ system = { path = "../system" }
 version = "0.3.77"
 features = [
   "CanvasRenderingContext2d",
-  "Document",
-  "HtmlCanvasElement",
-  "Node",
-  "Window",
   "console",
 ]
