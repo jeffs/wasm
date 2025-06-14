@@ -25,6 +25,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "easel"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "magic",
+ "perf",
+ "rk-primes",
+ "system",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "js-sys"
 version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -39,6 +52,7 @@ name = "life"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "easel",
  "magic",
  "system",
  "wasm-bindgen",
@@ -67,6 +81,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
+name = "perf"
+version = "0.1.0"
+dependencies = [
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -83,6 +105,11 @@ checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "rk-primes"
+version = "0.1.0"
+source = "git+https://github.com/jeffs/rust-kart#6d1090025d1a032b4cfb0fe9fdb75086427b9da0"
 
 [[package]]
 name = "rustversion"
