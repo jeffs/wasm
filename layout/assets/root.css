@@ -1,0 +1,46 @@
+:root {
+  --dark-jade: hsl(145, 19%, 45%);
+  --topaz: hsl(200, 99%, 44%);
+  --ebony: hsl(243, 44%, 8%);
+
+  --text-size: 48px;
+}
+
+html,
+body {
+  /* Internal layout */
+  box-sizing: border-box;
+  /* Color */
+  background-color: var(--ebony);
+  color: var(--dark-jade);
+}
+
+*,
+*::before,
+*::after {
+  /* Internal layout */
+  box-sizing: inherit;
+}
+
+body {
+  /* Internal layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Font */
+  font-size: var(--text-size);
+  /* External layout */
+  margin: auto;
+  min-height: 100svh;
+}
+
+a {
+  color: var(--topaz);
+  text-decoration: none;
+}
+
+h1 {
+  font-size: var(--text-size);
+  text-align: center;
+}
