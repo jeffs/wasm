@@ -1,0 +1,8 @@
+<!doctype html><html lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0" name=viewport><title>Life | Jeff's Wasm</title><link href=/root-e295544dfd5a496.css integrity=sha384-C33PqvtwZsoKykw5ND1ECTawiLVaDW6h0OoZzh2BIoRh6Ex7lbFhfz1Q0jPkMtp+ rel=stylesheet><link href=/life-6a3c12ee2897a52.css integrity=sha384-qe7uz2IxC0HGX0JU3dmXgyYfy7Fv8NghjIjfoyNzJ0I+V2kL3jfdl3vIPV+A4VcP rel=stylesheet><link crossorigin href=/life-a42aabd00dca16c9.js integrity=sha384-KqgbVGCabiFjwsMnQRWGBOmPvoExPRtIQXzAjnuB9ZtsisF4zh5jh/AuRCJ4F4Tu rel=modulepreload><link as=fetch crossorigin href=/life-a42aabd00dca16c9_bg.wasm integrity=sha384-4RAc+oVO721Q0yoWmhnsREjEmKttmD3ku8Ab5ndy91GhXM7zFqY/qx7E1rXMoh4O rel=preload type=application/wasm></head><body><h1 class=layout__title>Conway's Game of Life</h1><script type=module>import init, * as bindings from '/life-a42aabd00dca16c9.js';
+const wasm = await init({ module_or_path: '/life-a42aabd00dca16c9_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));</script></body></html>
