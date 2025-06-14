@@ -11,6 +11,7 @@ rk-primes = { git = "https://github.com/jeffs/rust-kart", package = "rk-primes"}
 
 perf = { path = "../perf" }
 magic = { path = "../magic" }
+system = { path = "../system" }
 
 [dependencies.web-sys]
 version = "0.3.77"

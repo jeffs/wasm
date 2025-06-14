@@ -71,6 +71,7 @@ dependencies = [
  "magic",
  "perf",
  "rk-primes",
+ "system",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -113,6 +114,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "system"
+version = "0.1.0"
+dependencies = [
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

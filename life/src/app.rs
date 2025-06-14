@@ -23,8 +23,9 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
-use crate::js::prelude::*;
-use crate::{Error, Result, System};
+use magic::prelude::*;
+
+use crate::{Error, Result};
 
 const CELL_SIZE: u32 = 5;
 const GRID_COLOR: &str = "#CCCCCC";
@@ -228,7 +229,7 @@ impl App {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn new(system: &Rc<System>) -> Result<Self> {
+    pub fn new(system: &Rc<system::System>) -> Result<Self> {
         let size = RectangleSize {
             width: 64,
             height: 64,
