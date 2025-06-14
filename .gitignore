@@ -6,3 +6,4 @@ target/
 
 # Trunk output
 dist/
+!/dist/

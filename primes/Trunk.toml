@@ -1,5 +1,6 @@
 [build]
-minify = "on_release"
+html_output = "primes.html"
+minify = "always"
 
 [serve]
 addresses = ["0.0.0.0"]
