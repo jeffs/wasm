@@ -18,6 +18,7 @@ mod histogram;
 use core::cell::RefCell;
 use std::rc::Rc;
 
+use easel::Easel;
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
@@ -57,7 +58,7 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
 }
 
 pub struct Chart {
-    root: Element,
+    easel: Easel,
 }
 
 impl Chart {
@@ -120,6 +121,6 @@ impl Chart {
 
     #[must_use]
     pub fn root(&self) -> &Element {
-        &self.root
+        &self.easel.root()
     }
 }

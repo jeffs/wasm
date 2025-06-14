@@ -54,7 +54,7 @@ impl Easel {
     /// is added or removed from the DOM, as detected by [Mutation Observers](
     /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
     /// ).
-    pub fn new<F: FnMut(&CanvasRenderingContext2d) + 'static>(
+    pub fn new<F: FnMut(&CanvasRenderingContext2d, &Element) + 'static>(
         system: Rc<System>,
         mut render: F,
     ) -> Result<Self> {
@@ -83,7 +83,7 @@ impl Easel {
             if throttle.skip() {
                 return;
             }
-            render(&context);
+            render(&context, &caption);
         }));
 
         Ok(Easel {

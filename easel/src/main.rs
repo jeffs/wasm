@@ -1,15 +1,20 @@
 use std::rc::Rc;
 
-use primes as lib;
+use easel::{self, Easel, Result};
 use system::System;
-use web_sys::CanvasRenderingContext2d;
+use web_sys::{CanvasRenderingContext2d, Element};
 
-fn render(_: &CanvasRenderingContext2d) {}
-
-fn main_imp() -> lib::Result<()> {
+fn main_imp() -> Result<()> {
     console_error_panic_hook::set_once();
+
+    let mut count = 0;
+    let render = move |_: &CanvasRenderingContext2d, caption: &Element| {
+        count += 1;
+        caption.set_text_content(Some(&count.to_string()));
+    };
+
     let system = Rc::new(System::new()?);
-    let app = Box::new(lib::Easel::new(Rc::clone(&system), render)?);
+    let app = Box::new(Easel::new(Rc::clone(&system), render)?);
     system.body.append_child(app.root())?;
     app.play();
     Box::leak(app);
