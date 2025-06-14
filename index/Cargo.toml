@@ -1,7 +1,5 @@
-[workspace]
-
 [package]
-name = "wasm"
+name = "index"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,10 +7,3 @@ edition = "2024"
 console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2.100"
 web-sys = "0.3.77"
-
-# Libraries
-perf = { path = "perf" }
-
-# Pages
-life = { path = "life"  }
-primes = { path = "primes"  }

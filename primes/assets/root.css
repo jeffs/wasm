@@ -1,51 +1,8 @@
-:root {
-  --ebony: hsl(243, 44%, 8%);
-  --dark-jade-green: hsl(181, 90%, 12%);
-  --dark-jade: hsl(145, 19%, 45%);
-  --jade: hsl(158, 100%, 33%);
-  --bronze-gold: #a56406;
-  --gold: hsl(51, 100%, 50%);
-  --ivory: hsl(60, 100%, 97%);
-
-  /* Background. */
-  --color-bg: var(--ebony);
-  /* Foreground. */
-  --color-fg: var(--dark-jade);
-
-  --pad: 4px;
-  --gap: 8px;
-  --text-size: 16px;
-}
-
-html,
-body {
-  /* Internal layout */
-  box-sizing: border-box;
-  /* Color */
-  background-color: var(--color-bg);
-  color: var(--color-fg);
-}
-
-*,
-*::before,
-*::after {
-  /* Internal layout */
-  box-sizing: inherit;
-}
-
-body {
-  /* Internal layout */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* Font */
-  font-size: var(--text-size);
-  /* External layout */
-  margin: auto;
-  min-height: 100svh;
-}
-
-.chart__canvas {
+.primes-chart__canvas {
   transform: scale(1, -1);
+}
+
+.primes-chart__status {
+  display: flex;
+  justify-content: space-between;
 }

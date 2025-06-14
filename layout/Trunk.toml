@@ -1,5 +1,3 @@
-# https://trunkrs.dev/configuration/
-
 [build]
 minify = "on_release"
 

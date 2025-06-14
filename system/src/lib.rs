@@ -1,9 +1,13 @@
-use crate::error::{Error, Result};
+pub mod error;
+
+use web_sys::{Document, HtmlElement, Window};
+
+pub use crate::error::{Error, Result};
 
 pub struct System {
-    pub window: web_sys::Window,
-    pub document: web_sys::Document,
-    pub body: web_sys::HtmlElement,
+    pub window: Window,
+    pub document: Document,
+    pub body: HtmlElement,
 }
 
 impl System {
@@ -18,6 +22,12 @@ impl System {
             window,
             document,
         })
+    }
+}
+
+impl AsRef<Document> for System {
+    fn as_ref(&self) -> &Document {
+        &self.document
     }
 }
 

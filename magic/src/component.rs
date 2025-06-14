@@ -1,6 +1,6 @@
-use web_sys::{Document, Element, HtmlCanvasElement};
+use web_sys::{Document, Element};
 
-use crate::Result;
+use super::js::Result;
 
 pub struct EmptyContext;
 
@@ -16,6 +16,9 @@ pub trait IntoComponent {
     /// The target component type.
     type Component: AsRef<Element>;
 
+    /// # Errors
+    ///
+    /// May return [`Err`] if DOM interaction fails.
     fn into_component(self, context: &Self::Context) -> Result<Self::Component>;
 }
 
@@ -38,22 +41,13 @@ impl IntoComponent for &Element {
     }
 }
 
-impl IntoComponent for &HtmlCanvasElement {
-    type Context = EmptyContext;
-    type Component = Self;
-
-    fn into_component(self, _: &Self::Context) -> Result<Self::Component> {
-        Ok(self)
-    }
-}
-
 /// Self is the tag name.
 impl IntoComponent for (&str,) {
     type Context = Document;
     type Component = Element;
 
     fn into_component(self, document: &Self::Context) -> Result<Self::Component> {
-        Ok(document.create_element(self.0)?)
+        document.create_element(self.0)
     }
 }
 

@@ -30,7 +30,11 @@ impl Fps {
     ///
     /// Will return [`Err`] if the element cannot be created.
     pub fn new(window: &Window, document: &Document) -> Result<Self, FpsError> {
-        let root = document.create_element("p").map_err(FpsError::Creation)?;
+        let root = document
+            .create_element("span")
+            .map_err(FpsError::Creation)?;
+        // Set content so the paragraph isn't collapsed to zero height.
+        root.set_inner_html("&nbsp;");
         let counter = Counter::try_start(window, LAP_TICKS).ok_or(FpsError::Performance)?;
         Ok(Fps { root, counter })
     }
@@ -40,10 +44,9 @@ impl Fps {
             self.root.set_text_content(Some(&format!("FPS: {fps:.1}")));
         }
     }
-}
 
-impl AsRef<Element> for Fps {
-    fn as_ref(&self) -> &Element {
+    #[must_use]
+    pub fn root(&self) -> &Element {
         &self.root
     }
 }
