@@ -89,7 +89,6 @@ where
 
 macro_rules! tag_with_class_and_text {
     ($trait:ident, $tag:ident) => {
-        #[allow(dead_code)]
         pub fn $tag<C: Class, Co: Content<C::Output>>(class: C, content: Co) -> Co::Output {
             content.content(class.class(stringify!($tag)))
         }
@@ -126,7 +125,6 @@ tag_with_class_and_text!(CreateP, p);
 tag_with_class_and_text!(CreateCaption, caption);
 tag_with_class_and_text!(CreateSpan, span);
 
-#[allow(unused_imports)]
 pub mod prelude {
     pub use super::{
         CreateCaption, CreateDiv, CreateH1, CreateP, CreateSpan, caption, div, h1, p, span,

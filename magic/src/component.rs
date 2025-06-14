@@ -1,5 +1,5 @@
 use wasm_bindgen::JsValue;
-use web_sys::{Document, Element, HtmlCanvasElement};
+use web_sys::{Document, Element};
 
 pub struct EmptyContext;
 
@@ -34,16 +34,6 @@ impl IntoComponent for Element {
 }
 
 impl IntoComponent for &Element {
-    type Context = EmptyContext;
-    type Component = Self;
-
-    fn into_component(self, _: &Self::Context) -> Result<Self::Component> {
-        Ok(self)
-    }
-}
-
-/// TODO: Make `HtmlCanvasElement` dependency feature-contingent.
-impl IntoComponent for &HtmlCanvasElement {
     type Context = EmptyContext;
     type Component = Self;
 

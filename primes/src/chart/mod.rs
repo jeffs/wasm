@@ -78,7 +78,7 @@ impl Chart {
         let number = document.caption([], "1: []")?;
         let mut fps = perf::components::Fps::new(&system.window, document)?;
         let status = document.div(["primes-chart__status"], (&number, fps.root()))?;
-        let root = document.div([], (&canvas, &status))?;
+        let root = document.div([], (canvas.as_ref(), &status))?;
 
         let context = get_context(&canvas)?;
 
