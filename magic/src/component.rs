@@ -1,9 +1,8 @@
-use wasm_bindgen::JsValue;
 use web_sys::{Document, Element};
 
-pub struct EmptyContext;
+use super::js::Result;
 
-pub type Result<T> = std::result::Result<T, JsValue>;
+pub struct EmptyContext;
 
 impl AsRef<EmptyContext> for Document {
     fn as_ref(&self) -> &EmptyContext {

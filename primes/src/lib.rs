@@ -1,6 +1,5 @@
 mod chart;
 mod error;
-pub mod js;
 mod system;
 
 pub use chart::Chart;

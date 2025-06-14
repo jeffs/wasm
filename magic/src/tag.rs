@@ -5,7 +5,8 @@
 //! The array of class names currently has a maximum size of 1. To specify
 //! multiple class names, separate them with spaces.
 
-use super::component::{IntoComponent, Result};
+use super::component::IntoComponent;
+use super::js::Result;
 
 pub trait Class {
     type Output: IntoComponent;

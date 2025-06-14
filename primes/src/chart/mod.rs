@@ -26,7 +26,6 @@ use magic::prelude::*;
 use fill::FillStyle;
 use histogram::Histogram;
 
-use crate::js::prelude::*;
 use crate::{Error, Result, System};
 
 /// Increase this number to slow the animation. The canvas updates on every Nth
@@ -37,9 +36,9 @@ pub const THROTTLE: u32 = 1;
 const FILL_STYLE: FillStyle = FillStyle::Color;
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    ("canvas", "primes-chart__canvas")
-        .into_component(document)?
-        .dyn_cast::<HtmlCanvasElement>()
+    Ok(("canvas", "primes-chart__canvas")
+        .into_component(document)
+        .and_then(Element::dyn_cast::<HtmlCanvasElement>)?)
 }
 
 fn get_context(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContext2d> {
