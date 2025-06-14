@@ -2,11 +2,14 @@ use std::rc::Rc;
 
 use primes as lib;
 use system::System;
+use web_sys::CanvasRenderingContext2d;
+
+fn render(_: &CanvasRenderingContext2d) {}
 
 fn main_imp() -> lib::Result<()> {
     console_error_panic_hook::set_once();
     let system = Rc::new(System::new()?);
-    let app = Box::new(lib::Easel::new(&system)?);
+    let app = Box::new(lib::Easel::new(&system, render)?);
     system.body.append_child(app.root())?;
     Box::leak(app);
     Ok(())
