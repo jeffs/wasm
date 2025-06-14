@@ -1,0 +1,8 @@
+.easel-chart__canvas {
+  transform: scale(1, -1);
+}
+
+.easel-chart__status {
+  display: flex;
+  justify-content: space-between;
+}
