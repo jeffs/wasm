@@ -29,9 +29,10 @@ use crate::{Error, Result, System};
 
 /// Increase this number to slow the animation. The canvas updates on every Nth
 /// frame; so, at 60fps, a throttle of 60 updates about once per second.
-pub const THROTTLE: u32 = 180;
+pub const THROTTLE: u32 = 1;
 
-const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
+// const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
+const FILL_STYLE: FillStyle = FillStyle::Color;
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     ("canvas", "primes-chart__canvas")
