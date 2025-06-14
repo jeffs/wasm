@@ -63,8 +63,8 @@ impl App {
     /// # TODO
     ///
     /// * Decouple state update from rendering.
-    /// * Show universe size and generation number in caption.
     pub fn new(system: Rc<System>) -> Result<Self> {
+        let mut generation = 0;
         let mut universe = Universe::new();
         Ok(App {
             easel: Easel::start(system, move |easel: RenderContext| {
@@ -79,16 +79,17 @@ impl App {
                 if is_new {
                     // Let there be light.
                     universe.speckle();
-                    easel.caption.set_text_content(Some("speckled"));
                 } else {
-                    let (width, height) = (universe.width(), universe.height());
-                    let caption = format!("{width}x{height}");
                     universe.tick();
-                    easel.caption.set_text_content(Some(&caption));
                 }
-                // Render.
+                // Render the canvas.
                 canvas.clear_rect(0.0, 0.0, size.width.into(), size.height.into());
                 draw_cells(easel.canvas, &universe);
+                // Render the caption.
+                generation += 1;
+                let (width, height) = (universe.width(), universe.height());
+                let caption = format!("{width}x{height} @ {generation}");
+                easel.caption.set_text_content(Some(&caption));
             })?,
         })
     }
