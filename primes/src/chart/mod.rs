@@ -22,11 +22,12 @@ use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Window};
 
 use magic::prelude::*;
+use system::System;
 
 use fill::FillStyle;
 use histogram::Histogram;
 
-use crate::{Error, Result, System};
+use crate::{Error, Result};
 
 /// Increase this number to slow the animation. The canvas updates on every Nth
 /// frame; so, at 60fps, a throttle of 60 updates about once per second.
