@@ -8,6 +8,7 @@ fn main_imp() -> easel::Result<()> {
     let system = Rc::new(System::new()?);
     let app = Box::new(lib::Chart::new(Rc::clone(&system))?);
     system.body.append_child(app.root())?;
+    app.play();
     Box::leak(app);
     Ok(())
 }

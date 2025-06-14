@@ -1,5 +1,5 @@
 use core::cell::RefCell;
-use std::rc::Rc;
+use std::{num::NonZeroU32, rc::Rc};
 
 use perf::components::Fps;
 use system::Size;
@@ -9,10 +9,6 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 use magic::prelude::*;
 
 use crate::{Error, Result, System};
-
-/// Increase this number to slow the animation. The canvas updates on every Nth
-/// frame; so, at 60fps, a throttle of 60 updates about once per second.
-pub const THROTTLE: u32 = 1;
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     Ok(("canvas", "easel-canvas")
@@ -46,7 +42,7 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
 pub struct RenderContext<'a> {
     pub canvas: &'a CanvasRenderingContext2d,
     pub caption: &'a Element,
-    pub throttle: u32,
+    pub throttle: NonZeroU32,
 }
 
 /// A component that holds a canvas, along with a status bar including a caption
@@ -61,6 +57,7 @@ pub struct RenderContext<'a> {
 pub struct Easel {
     root: Element,
     system: Rc<System>,
+    throttle: Rc<RefCell<perf::Throttle>>,
     /// Callback for [`Window::request_animation_frame`]. So much indirection
     /// is required because the function is self-referential: Each time it is
     /// called, it must schedule the next call to itself.
@@ -87,8 +84,6 @@ impl Easel {
 
         let root = document.div([], (canvas.as_ref(), &status))?;
 
-        let mut throttle = perf::Throttle::new(THROTTLE);
-
         // Well, I'll be a reference-counted cell of an option! We need to
         // hand the `request_animation_frame` callback to the runtime system so
         // it can be, uh, called back. But it also needs a reference to itself,
@@ -96,20 +91,23 @@ impl Easel {
         //
         // Kudos to the wasm-bindgen guide for the Rc/RefCell/Option workaround:
         // <https://rustwasm.github.io/wasm-bindgen/examples/request-animation-frame.html>
+        let throttle = Rc::new(RefCell::new(perf::Throttle::default()));
         let animate = Rc::new(RefCell::new(None));
-        let raf_cb = Rc::clone(&animate);
         let raf_system = Rc::clone(&system);
+        let raf_throttle = Rc::clone(&throttle);
+        let raf_animate = Rc::clone(&animate);
         *animate.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
-            if let Some(cb) = raf_cb.borrow().as_ref() {
+            if let Some(cb) = raf_animate.borrow().as_ref() {
                 request_animation_frame(&raf_system.window, cb);
                 fps.tick();
+                let mut throttle = raf_throttle.borrow_mut();
                 if throttle.skip() {
                     return;
                 }
                 render(RenderContext {
                     canvas: &context,
                     caption: &caption,
-                    throttle: THROTTLE,
+                    throttle: throttle.period(),
                 });
             }
         }));
@@ -117,8 +115,15 @@ impl Easel {
         Ok(Easel {
             root,
             system,
+            throttle,
             animate,
         })
+    }
+
+    /// Increase this number to slow the animation. The canvas updates on every Nth
+    /// frame; so, at 60fps, a throttle of 60 updates about once per second.
+    pub fn throttle(&mut self, period: NonZeroU32) {
+        self.throttle.borrow_mut().set_period(period);
     }
 
     pub fn play(&self) {

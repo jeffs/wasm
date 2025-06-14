@@ -15,7 +15,7 @@
 mod fill;
 mod histogram;
 
-use std::rc::Rc;
+use std::{num::NonZeroU32, rc::Rc};
 
 use easel::{Easel, RenderContext, Result};
 use web_sys::Element;
@@ -36,21 +36,25 @@ impl Chart {
         let mut sieve = rk_primes::Sieve::new();
         let mut histogram = Histogram::new();
         let mut factors = Vec::new();
-        Ok(Chart {
-            easel: Easel::start(system, move |easel: RenderContext| {
-                // Repaint the canvas.
-                let throttle = easel.throttle;
-                histogram.clear(easel.canvas);
-                histogram.incr(&mut sieve);
-                histogram.fill(easel.canvas, FillStyle::Auto { throttle });
-                // Update the caption.
-                let value = histogram.value();
-                factors.clear();
-                factors.extend(sieve.factors(value));
-                let caption = format!("{value}: {factors:?}");
-                easel.caption.set_text_content(Some(&caption));
-            })?,
-        })
+        let mut easel = Easel::new(system, move |easel: RenderContext| {
+            // Repaint the canvas.
+            let throttle = easel.throttle.into();
+            histogram.clear(easel.canvas);
+            histogram.incr(&mut sieve);
+            histogram.fill(easel.canvas, FillStyle::Auto { throttle });
+            // Update the caption.
+            let value = histogram.value();
+            factors.clear();
+            factors.extend(sieve.factors(value));
+            let caption = format!("{value}: {factors:?}");
+            easel.caption.set_text_content(Some(&caption));
+        })?;
+        easel.throttle(NonZeroU32::new(100).unwrap_or_else(|| unreachable!()));
+        Ok(Chart { easel })
+    }
+
+    pub fn play(&self) {
+        self.easel.play();
     }
 
     #[must_use]
