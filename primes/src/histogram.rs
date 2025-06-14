@@ -1,47 +1,11 @@
+use easel::canvas_size;
 use rk_primes::Sieve;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
+use system::{Size, usize_to_u32};
+use web_sys::CanvasRenderingContext2d;
 
-use super::fill::FillStyle;
+use crate::fill::FillStyle;
 
 const GAP: u32 = 2;
-
-#[expect(dead_code)]
-const fn u32_to_usize(value: u32) -> usize {
-    const { assert!(size_of::<u32>() <= size_of::<usize>()) }
-    value as usize
-}
-
-#[cfg(target_arch = "wasm32")]
-const fn usize_to_u32(value: usize) -> u32 {
-    const { assert!(size_of::<usize>() <= size_of::<u32>()) }
-    value as u32
-}
-
-/// # Panics
-///
-/// Will panic on overflow.
-#[cfg(not(target_arch = "wasm32"))]
-#[expect(clippy::cast_possible_truncation)]
-const fn usize_to_u32(value: usize) -> u32 {
-    let output = value as u32;
-    assert!(output as usize == value, "overflow");
-    output
-}
-
-#[derive(Clone, Copy, Default)]
-struct Size {
-    height: u32,
-    width: u32,
-}
-
-impl Size {
-    fn of_canvas(canvas: &HtmlCanvasElement) -> Size {
-        Size {
-            height: canvas.height(),
-            width: canvas.width(),
-        }
-    }
-}
 
 /// Replaces `powers` with the exponents of all prime factors in `n`, including
 /// zeroes, up to the maximum prime factor.
@@ -144,7 +108,7 @@ impl Histogram {
             return;
         };
         context.begin_path();
-        for brick in Columns::new(&self.powers, Size::of_canvas(&canvas)).flatten() {
+        for brick in Columns::new(&self.powers, canvas_size(&canvas)).flatten() {
             context.clear_rect(brick.x, brick.y, brick.w, brick.h);
         }
         context.stroke();
@@ -156,7 +120,7 @@ impl Histogram {
             return;
         };
         context.begin_path();
-        for (index, column) in Columns::new(&self.powers, Size::of_canvas(&canvas)).enumerate() {
+        for (index, column) in Columns::new(&self.powers, canvas_size(&canvas)).enumerate() {
             context.set_fill_style_str(style.get(index).as_str());
             for brick in column {
                 context.fill_rect(brick.x, brick.y, brick.w, brick.h);

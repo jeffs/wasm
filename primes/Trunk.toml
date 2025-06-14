@@ -5,4 +5,4 @@ minify = "on_release"
 addresses = ["0.0.0.0"]
 
 [watch]
-watch = [".", "../layout", "../perf"]
+watch = [".", "../easel", "../layout", "../magic", "../perf", "../system"]

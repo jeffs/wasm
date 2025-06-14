@@ -3,10 +3,10 @@ use std::rc::Rc;
 use primes as lib;
 use system::System;
 
-fn main_imp() -> lib::Result<()> {
+fn main_imp() -> easel::Result<()> {
     console_error_panic_hook::set_once();
     let system = Rc::new(System::new()?);
-    let app = Box::new(lib::Chart::new(&system)?);
+    let app = Box::new(lib::Chart::new(Rc::clone(&system))?);
     system.body.append_child(app.root())?;
     Box::leak(app);
     Ok(())

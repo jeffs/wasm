@@ -25,6 +25,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "easel"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "magic",
+ "perf",
+ "rk-primes",
+ "system",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "js-sys"
 version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -68,6 +81,7 @@ name = "primes"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "easel",
  "magic",
  "perf",
  "rk-primes",

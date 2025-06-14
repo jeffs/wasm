@@ -1,5 +1,5 @@
 [package]
-name = "primes"
+name = "easel"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,7 +9,6 @@ wasm-bindgen = "0.2.100"
 
 rk-primes = { git = "https://github.com/jeffs/rust-kart", package = "rk-primes"}
 
-easel = { path = "../easel" }
 perf = { path = "../perf" }
 magic = { path = "../magic" }
 system = { path = "../system" }
@@ -18,5 +17,9 @@ system = { path = "../system" }
 version = "0.3.77"
 features = [
   "CanvasRenderingContext2d",
+  "Document",
+  "HtmlCanvasElement",
+  "Node",
+  "Window",
   "console",
 ]

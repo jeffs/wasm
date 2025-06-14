@@ -41,7 +41,7 @@ impl Fps {
 
     pub fn tick(&mut self) {
         if let Some(fps) = self.counter.tick() {
-            self.root.set_text_content(Some(&format!("FPS: {fps:.1}")));
+            self.root.set_text_content(Some(&format!("{fps:.01} fps")));
         }
     }
 

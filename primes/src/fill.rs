@@ -15,6 +15,9 @@ const COLORS: [&str; 14] = [
     "#000080", // 43, 107 Navy
 ];
 
+/// The fill style is currently hard-coded, so the compiler helpfully points out
+/// that only one of the variants is actually in use for any given build. An
+/// alternative to suppressing the lint would be to allow changes at runtime.
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub enum FillStyle {

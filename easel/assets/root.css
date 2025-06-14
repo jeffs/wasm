@@ -1,8 +1,8 @@
-.primes-chart__canvas {
+.easel-canvas {
   transform: scale(1, -1);
 }
 
-.primes-chart__status {
+.easel-status {
   display: flex;
   justify-content: space-between;
 }

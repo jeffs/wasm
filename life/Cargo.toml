@@ -7,6 +7,7 @@ edition = "2024"
 console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2.100"
 
+easel = { path = "../easel" }
 magic = { path = "../magic" }
 system = { path = "../system" }
 
@@ -15,11 +16,6 @@ version = "0.3.77"
 features = [
   "CanvasRenderingContext2d",
   "Document",
-  "DomTokenList",
-  "HtmlCanvasElement",
-  "HtmlElement",
-  "Node",
-  "Text",
   "Window",
   "console",
 ]
