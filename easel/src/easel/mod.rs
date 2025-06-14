@@ -35,10 +35,10 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
 
 pub struct Easel {
     root: Element,
+    system: Rc<System>,
     /// Callback function for [`Window::request_animation_frame`]. So much
     /// indirection is required because the function is self-referential: It
     /// must schedule future callbacks to itself from each animation frame.
-    #[allow(dead_code)]
     #[expect(clippy::type_complexity)]
     animate: Rc<RefCell<Option<Closure<dyn FnMut()>>>>,
 }
@@ -55,7 +55,7 @@ impl Easel {
     /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
     /// ).
     pub fn new<F: FnMut(&CanvasRenderingContext2d) + 'static>(
-        system: &Rc<System>,
+        system: Rc<System>,
         mut render: F,
     ) -> Result<Self> {
         let document = &system.document;
@@ -74,7 +74,7 @@ impl Easel {
 
         let animate = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&animate);
-        let raf_system = Rc::clone(system);
+        let raf_system = Rc::clone(&system);
         *animate.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             if let Some(cb) = raf_cb.borrow().as_ref() {
                 request_animation_frame(&raf_system.window, cb);
@@ -86,11 +86,18 @@ impl Easel {
             render(&context);
         }));
 
-        Ok(Easel { root, animate })
+        Ok(Easel {
+            root,
+            system,
+            animate,
+        })
     }
-    // if let Some(cb) = raf_cb.borrow().as_ref() {
-    //     request_animation_frame(&system.window, cb);
-    // }
+
+    pub fn play(&self) {
+        if let Some(cb) = self.animate.borrow().as_ref() {
+            request_animation_frame(&self.system.window, cb);
+        }
+    }
 
     #[must_use]
     pub fn root(&self) -> &Element {
