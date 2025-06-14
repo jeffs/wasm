@@ -33,6 +33,13 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
         .expect("requesting animation frame");
 }
 
+/// Argument to the easel render callback function.
+pub struct RenderContext<'a> {
+    pub canvas: &'a CanvasRenderingContext2d,
+    pub caption: &'a Element,
+    pub throttle: u32,
+}
+
 /// A component that holds a canvas, along with a status bar including a caption
 /// and an FPS counter.
 ///
@@ -45,9 +52,9 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
 pub struct Easel {
     root: Element,
     system: Rc<System>,
-    /// Callback function for [`Window::request_animation_frame`]. So much
-    /// indirection is required because the function is self-referential: It
-    /// must schedule future callbacks to itself from each animation frame.
+    /// Callback for [`Window::request_animation_frame`]. So much indirection
+    /// is required because the function is self-referential: Each time it is
+    /// called, it must schedule the next call to itself.
     #[expect(clippy::type_complexity)]
     animate: Rc<RefCell<Option<Closure<dyn FnMut()>>>>,
 }
@@ -56,7 +63,7 @@ impl Easel {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn new<F: FnMut(&CanvasRenderingContext2d, &Element) + 'static>(
+    pub fn new<F: FnMut(RenderContext) + 'static>(
         system: Rc<System>,
         mut render: F,
     ) -> Result<Self> {
@@ -73,6 +80,13 @@ impl Easel {
 
         let mut throttle = perf::Throttle::new(THROTTLE);
 
+        // Well, I'll be a reference-counted cell of an option! We need to
+        // hand the `request_animation_frame` callback to the runtime system so
+        // it can be, uh, called back. But it also needs a reference to itself,
+        // so that on the first call, it can schedule the next, and so on.
+        //
+        // Kudos to the wasm-bindgen guide for the Rc/RefCell/Option workaround:
+        // <https://rustwasm.github.io/wasm-bindgen/examples/request-animation-frame.html>
         let animate = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&animate);
         let raf_system = Rc::clone(&system);
@@ -80,9 +94,14 @@ impl Easel {
             if let Some(cb) = raf_cb.borrow().as_ref() {
                 request_animation_frame(&raf_system.window, cb);
                 fps.tick();
-                if !throttle.skip() {
-                    render(&context, &caption);
+                if throttle.skip() {
+                    return;
                 }
+                render(RenderContext {
+                    canvas: &context,
+                    caption: &caption,
+                    throttle: THROTTLE,
+                });
             }
         }));
 
@@ -97,6 +116,16 @@ impl Easel {
         if let Some(cb) = self.animate.borrow().as_ref() {
             request_animation_frame(&self.system.window, cb);
         }
+    }
+
+    /// Creates a new [`Easel`] and immediately begins playing its animation.
+    /// # Errors
+    ///
+    /// Will return [`Err`] if DOM interaction fails.
+    pub fn start<F: FnMut(RenderContext) + 'static>(system: Rc<System>, render: F) -> Result<Self> {
+        let easel = Easel::new(system, render)?;
+        easel.play();
+        Ok(easel)
     }
 
     #[must_use]

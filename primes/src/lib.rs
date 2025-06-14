@@ -17,14 +17,12 @@ mod histogram;
 
 use std::rc::Rc;
 
-use easel::{Easel, Result};
-use web_sys::{CanvasRenderingContext2d, Element};
+use easel::{Easel, RenderContext, Result};
+use web_sys::Element;
 
 use fill::FillStyle;
 use histogram::Histogram;
 use system::System;
-
-const FILL_STYLE: FillStyle = FillStyle::Auto;
 
 pub struct Chart {
     easel: Easel,
@@ -34,32 +32,25 @@ impl Chart {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    ///
-    /// # TODO
-    ///
-    /// For more complex pages, animation could start and stop as the component
-    /// is added or removed from the DOM, as detected by [Mutation Observers](
-    /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
-    /// ).
     pub fn new(system: Rc<System>) -> Result<Self> {
         let mut sieve = rk_primes::Sieve::new();
         let mut histogram = Histogram::new();
         let mut factors = Vec::new();
-
-        let render = move |context: &CanvasRenderingContext2d, caption: &Element| {
-            histogram.clear(context);
-            histogram.incr(&mut sieve);
-            histogram.fill(context, FILL_STYLE);
-            let value = histogram.value();
-            factors.clear();
-            factors.extend(sieve.factors(value));
-            caption.set_text_content(Some(&format!("{value}: {factors:?}")));
-        };
-
-        let easel = Easel::new(system, render)?;
-        easel.play();
-
-        Ok(Chart { easel })
+        Ok(Chart {
+            easel: Easel::start(system, move |easel: RenderContext| {
+                // Repaint the canvas.
+                let throttle = easel.throttle;
+                histogram.clear(easel.canvas);
+                histogram.incr(&mut sieve);
+                histogram.fill(easel.canvas, FillStyle::Auto { throttle });
+                // Update the caption.
+                let value = histogram.value();
+                factors.clear();
+                factors.extend(sieve.factors(value));
+                let caption = format!("{value}: {factors:?}");
+                easel.caption.set_text_content(Some(&caption));
+            })?,
+        })
     }
 
     #[must_use]

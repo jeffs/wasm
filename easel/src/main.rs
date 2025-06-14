@@ -1,16 +1,16 @@
 use std::rc::Rc;
 
-use easel::{Easel, Result};
+use easel::{Easel, RenderContext, Result};
 use system::System;
-use web_sys::{CanvasRenderingContext2d, Element};
 
 fn main_imp() -> Result<()> {
     console_error_panic_hook::set_once();
 
     let mut count = 0;
-    let render = move |_: &CanvasRenderingContext2d, caption: &Element| {
+    let render = move |context: RenderContext| {
         count += 1;
-        caption.set_text_content(Some(&count.to_string()));
+        let caption = format!("throttle={} count={count}", context.throttle);
+        context.caption.set_text_content(Some(&caption));
     };
 
     let system = Rc::new(System::new()?);
