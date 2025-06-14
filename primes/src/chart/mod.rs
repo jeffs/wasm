@@ -35,7 +35,7 @@ pub const THROTTLE: u32 = 180;
 const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    ("canvas", "chart__canvas")
+    ("canvas", "prime-chart__canvas")
         .into_component(document)
         .and_then(Element::dyn_cast::<HtmlCanvasElement>)
 }
@@ -70,7 +70,7 @@ impl Chart {
         let context = get_context(&canvas)?;
 
         let mut fps = perf::components::Fps::new(&system.window, document)?;
-        fps.as_ref().set_class_name("chart__caption");
+        fps.as_ref().set_class_name("prime-chart__caption");
 
         let root = document.div(["chart"], (&title, &canvas, fps.as_ref()))?;
 

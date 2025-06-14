@@ -3,3 +3,6 @@ minify = "on_release"
 
 [serve]
 addresses = ["0.0.0.0"]
+
+[watch]
+watch = [".", "../layout"]
