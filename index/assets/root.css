@@ -2,14 +2,14 @@ h1 {
   font-size: 48px;
 }
 
-.nav__item {
+.index-nav__item {
   font-size: 48px;
 }
 
-.nav__life {
+.index-nav__life {
   list-style-type: "🐞";
 }
 
-.nav__primes {
+.index-nav__primes {
   list-style-type: "🧱";
 }
