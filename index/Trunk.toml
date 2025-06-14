@@ -1,5 +1,5 @@
 [build]
-minify = "on_release"
+minify = "always"
 
 [serve]
 addresses = ["0.0.0.0"]
