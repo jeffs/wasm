@@ -1,12 +1,10 @@
 mod app;
 mod error;
 pub mod js;
-mod life;
 mod system;
 
 pub use app::App;
 pub use error::{Error, Result};
-use life::Life;
 pub use system::System;
 
 pub mod prelude {

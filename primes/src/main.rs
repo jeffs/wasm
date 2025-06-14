@@ -5,8 +5,8 @@ use primes as lib;
 fn main_imp() -> lib::Result<()> {
     console_error_panic_hook::set_once();
     let system = Rc::new(lib::System::new()?);
-    let app = Box::new(lib::App::new(&system)?);
-    system.body.append_child(&app.root)?;
+    let app = Box::new(lib::Chart::new(&system)?);
+    system.body.append_child(app.root())?;
     Box::leak(app);
     Ok(())
 }

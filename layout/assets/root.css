@@ -32,7 +32,6 @@ body {
   font-size: var(--text-size);
   /* External layout */
   margin: auto;
-  min-height: 100svh;
 }
 
 a {
@@ -40,6 +39,6 @@ a {
   text-decoration: none;
 }
 
-.layout__title {
+body>h1 {
   text-align: center;
 }

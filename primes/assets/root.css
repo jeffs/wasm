@@ -1,3 +1,8 @@
 .primes-chart__canvas {
   transform: scale(1, -1);
 }
+
+.primes-chart__status {
+  display: flex;
+  justify-content: space-between;
+}

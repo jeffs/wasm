@@ -25,7 +25,6 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 
 use crate::js::prelude::*;
 use crate::magic::prelude::*;
-use crate::magic::tag::prelude::*;
 use crate::{Error, Result, System};
 
 /// Increase this number to slow the animation. The canvas updates on every Nth
@@ -35,7 +34,7 @@ pub const THROTTLE: u32 = 180;
 const FILL_STYLE: FillStyle = FillStyle::Auto { throttle: THROTTLE };
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
-    ("canvas", "prime-chart__canvas")
+    ("canvas", "primes-chart__canvas")
         .into_component(document)
         .and_then(Element::dyn_cast::<HtmlCanvasElement>)
 }
@@ -55,37 +54,44 @@ fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
 }
 
 pub struct Chart {
-    pub root: Element,
+    root: Element,
 }
 
 impl Chart {
+    /// # Errors
+    ///
+    /// Will return [`Err`] if DOM interaction fails.
+    ///
+    /// # TODO
+    ///
     /// For more complex pages, animation could start and stop as the component
     /// is added or removed from the DOM, as detected by [Mutation Observers](
     /// https://developer.chrome.com/blog/detect-dom-changes-with-mutation-observers/
     /// ).
     pub fn new(system: &Rc<System>) -> Result<Self> {
         let document = &system.document;
-        let title = document.h1(["chart__title"], "1: []")?;
+
         let canvas = new_canvas(document)?;
-        let context = get_context(&canvas)?;
-
+        let number = document.caption([], "1: []")?;
         let mut fps = perf::components::Fps::new(&system.window, document)?;
-        fps.as_ref().set_class_name("prime-chart__caption");
+        let status = document.div(["primes-chart__status"], (&number, fps.root()))?;
+        let root = document.div([], (&canvas, &status))?;
 
-        let root = document.div(["chart"], (&title, &canvas, fps.as_ref()))?;
+        let context = get_context(&canvas)?;
 
         let mut throttle = perf::Throttle::new(THROTTLE);
         let mut histogram = Histogram::new();
-
         let mut factors = Vec::new();
         let mut sieve = rk_primes::Sieve::new();
 
         let render = Rc::new(RefCell::new(None));
         let raf_cb = Rc::clone(&render);
         let raf_system = Rc::clone(system);
-
         *raf_cb.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
-            request_animation_frame(&raf_system.window, render.borrow().as_ref().unwrap());
+            if let Some(cb) = render.borrow().as_ref() {
+                request_animation_frame(&raf_system.window, cb);
+            }
+
             fps.tick();
 
             if throttle.skip() {
@@ -99,11 +105,18 @@ impl Chart {
             let value = histogram.value();
             factors.clear();
             factors.extend(sieve.factors(value));
-            title.set_text_content(Some(&format!("{value}: {factors:?}")));
+            number.set_text_content(Some(&format!("{value}: {factors:?}")));
         }));
 
-        request_animation_frame(&system.window, raf_cb.borrow().as_ref().unwrap());
+        if let Some(cb) = raf_cb.borrow().as_ref() {
+            request_animation_frame(&system.window, cb);
+        }
 
         Ok(Chart { root })
+    }
+
+    #[must_use]
+    pub fn root(&self) -> &Element {
+        &self.root
     }
 }
