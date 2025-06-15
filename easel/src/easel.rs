@@ -1,5 +1,4 @@
 use std::cell::{Cell, RefCell};
-use std::ops;
 use std::{num::NonZeroU32, rc::Rc};
 
 use perf::components::Fps;
@@ -9,7 +8,7 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 
 use magic::prelude::*;
 
-use crate::{Error, Result, System};
+use crate::{Error, Result, System, pause};
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     Ok(("canvas", "easel-canvas")
@@ -46,66 +45,6 @@ pub struct RenderContext<'a> {
     pub throttle: NonZeroU32,
 }
 
-#[derive(Clone, Copy, Default, PartialEq)]
-enum PlayButtonState {
-    #[default]
-    Pause,
-    Play,
-}
-
-impl ops::Not for PlayButtonState {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        match self {
-            PlayButtonState::Pause => PlayButtonState::Play,
-            PlayButtonState::Play => PlayButtonState::Pause,
-        }
-    }
-}
-
-struct PlayButton {
-    button: Element,
-    state: Rc<Cell<PlayButtonState>>,
-    on_click: Rc<dyn Fn(PlayButtonState) + 'static>,
-    _handle_click: Closure<dyn FnMut()>,
-}
-
-impl PlayButton {
-    pub fn new(
-        document: &Document,
-        on_click: Rc<dyn Fn(PlayButtonState) + 'static>,
-    ) -> Result<PlayButton> {
-        let state = Rc::new(Cell::new(PlayButtonState::default()));
-        let cb_state = Rc::clone(&state);
-        let cb_on_click = Rc::clone(&on_click);
-        let cb = Closure::<dyn FnMut()>::new(move || {
-            let state = !cb_state.get();
-            cb_state.set(state);
-            cb_on_click(state);
-        });
-        let button = document.create_element("button")?;
-        button.set_text_content(Some("||"));
-        button.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())?;
-        Ok(PlayButton {
-            button,
-            state,
-            on_click,
-            _handle_click: cb,
-        })
-    }
-
-    fn click(&self) {
-        let state = !self.state.get();
-        self.state.set(state);
-        self.on_click.as_ref()(state);
-    }
-
-    fn root(&self) -> &Element {
-        &self.button
-    }
-}
-
 /// A component that holds a canvas, along with a status bar including a caption
 /// and an FPS counter.
 ///
@@ -118,7 +57,7 @@ impl PlayButton {
 pub struct Easel {
     root: Element,
     throttle: Rc<RefCell<perf::Throttle>>,
-    pause: PlayButton,
+    pause: pause::Button,
     /// Callback for [`Window::request_animation_frame`]. So much indirection
     /// is required because the function is self-referential: Each time it is
     /// called, it must schedule the next call to itself.
@@ -145,22 +84,22 @@ impl Easel {
         let cb_frame_id = Rc::clone(&frame_id);
         let cb_animate = Rc::clone(&animate);
         let cb_system = Rc::clone(system);
-        let handle_play = Rc::new(move |state| {
+        let handle_pause = Rc::new(move |state| {
             cb_frame_id.set(match state {
-                PlayButtonState::Pause => cb_frame_id.get().and_then(|handle| {
+                pause::State::Pause => cb_frame_id.get().and_then(|handle| {
                     cb_system
                         .window
                         .cancel_animation_frame(handle)
                         .err()
                         .map(|_| handle)
                 }),
-                PlayButtonState::Play => cb_animate
+                pause::State::Play => cb_animate
                     .borrow()
                     .as_ref()
                     .map(|animate| request_animation_frame(&cb_system.window, animate)),
             });
         });
-        let pause = PlayButton::new(document, handle_play)?;
+        let pause = pause::Button::new(document, handle_pause)?;
         let controls = document.div(["easel-controls"], (pause.root(),))?;
 
         let mut fps = Fps::new(&system.window, document)?;
@@ -216,6 +155,7 @@ impl Easel {
     }
 
     /// Creates a new [`Easel`] and immediately begins playing its animation.
+    ///
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
