@@ -8,7 +8,7 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 
 use magic::prelude::*;
 
-use crate::{Error, Result, System, pause};
+use crate::{Error, RafCallback, Result, System, pause};
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     Ok(("canvas", "easel-canvas")
@@ -32,7 +32,7 @@ pub fn canvas_size(canvas: impl AsRef<HtmlCanvasElement>) -> Size {
     }
 }
 
-fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) -> i32 {
+fn request_animation_frame(window: &Window, f: &RafCallback) -> i32 {
     window
         .request_animation_frame(f.as_ref().unchecked_ref())
         .expect("requesting animation frame")
@@ -43,6 +43,30 @@ pub struct RenderContext<'a> {
     pub canvas: &'a CanvasRenderingContext2d,
     pub caption: &'a Element,
     pub throttle: NonZeroU32,
+}
+
+fn new_pause_button(
+    frame_id: Rc<Cell<Option<i32>>>,
+    animate: Rc<RefCell<Option<RafCallback>>>,
+    system: &Rc<System>,
+) -> Result<pause::Button> {
+    let cb_system = Rc::clone(system);
+    let handle_pause = Rc::new(move |state| {
+        frame_id.set(match state {
+            pause::State::Pause => frame_id.get().and_then(|handle| {
+                cb_system
+                    .window
+                    .cancel_animation_frame(handle)
+                    .err()
+                    .map(|_| handle)
+            }),
+            pause::State::Play => animate
+                .borrow()
+                .as_ref()
+                .map(|animate| request_animation_frame(&cb_system.window, animate)),
+        });
+    });
+    pause::Button::new(&system.document, handle_pause)
 }
 
 /// A component that holds a canvas, along with a status bar including a caption
@@ -58,11 +82,7 @@ pub struct Easel {
     root: Element,
     throttle: Rc<RefCell<perf::Throttle>>,
     pause: pause::Button,
-    /// Callback for [`Window::request_animation_frame`]. So much indirection
-    /// is required because the function is self-referential: Each time it is
-    /// called, it must schedule the next call to itself.
-    #[expect(clippy::type_complexity)]
-    _animate: Rc<RefCell<Option<Closure<dyn FnMut()>>>>,
+    _animate: Rc<RefCell<Option<RafCallback>>>,
 }
 
 impl Easel {
@@ -81,25 +101,7 @@ impl Easel {
         let frame_id = Rc::new(Cell::new(None));
         let animate = Rc::new(RefCell::new(None));
 
-        let cb_frame_id = Rc::clone(&frame_id);
-        let cb_animate = Rc::clone(&animate);
-        let cb_system = Rc::clone(system);
-        let handle_pause = Rc::new(move |state| {
-            cb_frame_id.set(match state {
-                pause::State::Pause => cb_frame_id.get().and_then(|handle| {
-                    cb_system
-                        .window
-                        .cancel_animation_frame(handle)
-                        .err()
-                        .map(|_| handle)
-                }),
-                pause::State::Play => cb_animate
-                    .borrow()
-                    .as_ref()
-                    .map(|animate| request_animation_frame(&cb_system.window, animate)),
-            });
-        });
-        let pause = pause::Button::new(document, handle_pause)?;
+        let pause = new_pause_button(Rc::clone(&frame_id), Rc::clone(&animate), system)?;
         let controls = document.div(["easel-controls"], (pause.root(),))?;
 
         let mut fps = Fps::new(&system.window, document)?;

@@ -3,7 +3,7 @@ use std::{cell::Cell, ops, rc::Rc};
 use wasm_bindgen::prelude::*;
 use web_sys::{Document, Element};
 
-use crate::Result;
+use crate::{RafCallback, Result};
 
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum State {
@@ -24,10 +24,10 @@ impl ops::Not for State {
 }
 
 pub struct Button {
-    button: Element,
+    root: Element,
     state: Rc<Cell<State>>,
     on_click: Rc<dyn Fn(State) + 'static>,
-    _handle_click: Closure<dyn FnMut()>,
+    _handle_click: RafCallback,
 }
 
 impl Button {
@@ -44,7 +44,7 @@ impl Button {
         button.set_text_content(Some("||"));
         button.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())?;
         Ok(Button {
-            button,
+            root: button,
             state,
             on_click,
             _handle_click: cb,
@@ -58,6 +58,6 @@ impl Button {
     }
 
     pub fn root(&self) -> &Element {
-        &self.button
+        &self.root
     }
 }
