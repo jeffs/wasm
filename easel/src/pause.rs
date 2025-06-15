@@ -67,9 +67,14 @@ impl Button {
             on_click: Box::new(on_click),
         }));
 
-        let handle_click = Closure::<dyn Fn()>::new({
-            let cell = Rc::clone(&cell);
-            move || cell.borrow_mut().handle_click()
+        // The captive has an Rc to the closure, we so don't want the closure to
+        // also have an Rc to the captive, or they'll neither will ever be dropped.
+        let weak = Rc::downgrade(&cell);
+        let handle_click = Closure::<dyn Fn()>::new(move || {
+            let Some(cell) = weak.upgrade() else {
+                return;
+            };
+            cell.borrow_mut().handle_click();
         });
 
         cell.borrow()

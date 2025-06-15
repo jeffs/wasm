@@ -1,7 +1,7 @@
 mod error;
 mod size;
 
-use web_sys::{Document, Window};
+use web_sys::{Document, HtmlElement, Window};
 
 pub use crate::error::{Error, Result};
 
@@ -21,6 +21,13 @@ impl System {
         let window = web_sys::window().ok_or(Error::NoWindow)?;
         let document = window.document().ok_or(Error::NoDocument)?;
         Ok(System { window, document })
+    }
+
+    /// # Errors
+    ///
+    /// Will return [`Error::NoBody`] if the document body cannot be accessed.
+    pub fn body(&self) -> Result<HtmlElement> {
+        self.document.body().ok_or(Error::NoBody)
     }
 }
 

@@ -4,8 +4,9 @@ use system::System;
 fn main_imp() -> easel::Result<()> {
     console_error_panic_hook::set_once();
     let system = System::new()?;
-    let app = Box::new(lib::App::new(&system)?);
-    system.body.append_child(app.root())?;
+    let body = system.body()?;
+    let app = Box::new(lib::App::new(system)?);
+    body.append_child(app.root())?;
     Box::leak(app);
     Ok(())
 }

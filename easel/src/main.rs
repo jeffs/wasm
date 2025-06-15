@@ -1,4 +1,4 @@
-use easel::{Easel, Error, RenderContext, Result};
+use easel::{Easel, RenderContext, Result};
 use system::System;
 
 fn main_imp() -> Result<()> {
@@ -12,7 +12,7 @@ fn main_imp() -> Result<()> {
     };
 
     let system = System::new()?;
-    let body = system.document.body().ok_or(Error::NoBody)?;
+    let body = system.body()?;
     let mut app = Box::new(Easel::new(system, render)?);
     body.append_child(app.root())?;
     app.play();

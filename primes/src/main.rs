@@ -1,13 +1,12 @@
-use std::rc::Rc;
-
 use primes as lib;
 use system::System;
 
 fn main_imp() -> easel::Result<()> {
     console_error_panic_hook::set_once();
-    let system = Rc::new(System::new()?);
-    let mut app = Box::new(lib::Chart::new(&system)?);
-    system.body.append_child(app.root())?;
+    let system = System::new()?;
+    let body = system.body()?;
+    let mut app = Box::new(lib::Chart::new(system)?);
+    body.append_child(app.root())?;
     app.play();
     Box::leak(app);
     Ok(())
