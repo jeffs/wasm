@@ -1,4 +1,5 @@
-use core::cell::RefCell;
+use std::cell::{Cell, RefCell};
+use std::ops;
 use std::{num::NonZeroU32, rc::Rc};
 
 use perf::components::Fps;
@@ -32,10 +33,10 @@ pub fn canvas_size(canvas: impl AsRef<HtmlCanvasElement>) -> Size {
     }
 }
 
-fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) {
+fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) -> i32 {
     window
         .request_animation_frame(f.as_ref().unchecked_ref())
-        .expect("requesting animation frame");
+        .expect("requesting animation frame")
 }
 
 /// Argument to the easel render callback function.
@@ -43,6 +44,66 @@ pub struct RenderContext<'a> {
     pub canvas: &'a CanvasRenderingContext2d,
     pub caption: &'a Element,
     pub throttle: NonZeroU32,
+}
+
+#[derive(Clone, Copy, Default, PartialEq)]
+enum PlayButtonState {
+    #[default]
+    Pause,
+    Play,
+}
+
+impl ops::Not for PlayButtonState {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            PlayButtonState::Pause => PlayButtonState::Play,
+            PlayButtonState::Play => PlayButtonState::Pause,
+        }
+    }
+}
+
+struct PlayButton {
+    button: Element,
+    state: Rc<Cell<PlayButtonState>>,
+    on_click: Rc<dyn Fn(PlayButtonState) + 'static>,
+    _handle_click: Closure<dyn FnMut()>,
+}
+
+impl PlayButton {
+    pub fn new(
+        document: &Document,
+        on_click: Rc<dyn Fn(PlayButtonState) + 'static>,
+    ) -> Result<PlayButton> {
+        let state = Rc::new(Cell::new(PlayButtonState::default()));
+        let cb_state = Rc::clone(&state);
+        let cb_on_click = Rc::clone(&on_click);
+        let cb = Closure::<dyn FnMut()>::new(move || {
+            let state = !cb_state.get();
+            cb_state.set(state);
+            cb_on_click(state);
+        });
+        let button = document.create_element("button")?;
+        button.set_text_content(Some("||"));
+        button.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())?;
+        Ok(PlayButton {
+            button,
+            state,
+            on_click,
+            _handle_click: cb,
+        })
+    }
+
+    fn click(&self) {
+        let state = !self.state.get();
+        self.state.set(state);
+        self.on_click.as_ref()(state);
+    }
+
+    fn root(&self) -> &Element {
+        &self.button
+    }
 }
 
 /// A component that holds a canvas, along with a status bar including a caption
@@ -56,13 +117,13 @@ pub struct RenderContext<'a> {
 /// ).
 pub struct Easel {
     root: Element,
-    system: Rc<System>,
     throttle: Rc<RefCell<perf::Throttle>>,
+    pause: PlayButton,
     /// Callback for [`Window::request_animation_frame`]. So much indirection
     /// is required because the function is self-referential: Each time it is
     /// called, it must schedule the next call to itself.
     #[expect(clippy::type_complexity)]
-    animate: Rc<RefCell<Option<Closure<dyn FnMut()>>>>,
+    _animate: Rc<RefCell<Option<Closure<dyn FnMut()>>>>,
 }
 
 impl Easel {
@@ -70,7 +131,7 @@ impl Easel {
     ///
     /// Will return [`Err`] if DOM interaction fails.
     pub fn new<F: FnMut(RenderContext) + 'static>(
-        system: Rc<System>,
+        system: &Rc<System>,
         mut render: F,
     ) -> Result<Self> {
         let document = &system.document;
@@ -78,11 +139,35 @@ impl Easel {
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
 
+        let frame_id = Rc::new(Cell::new(None));
+        let animate = Rc::new(RefCell::new(None));
+
+        let cb_frame_id = Rc::clone(&frame_id);
+        let cb_animate = Rc::clone(&animate);
+        let cb_system = Rc::clone(system);
+        let handle_play = Rc::new(move |state| {
+            cb_frame_id.set(match state {
+                PlayButtonState::Pause => cb_frame_id.get().and_then(|handle| {
+                    cb_system
+                        .window
+                        .cancel_animation_frame(handle)
+                        .err()
+                        .map(|_| handle)
+                }),
+                PlayButtonState::Play => cb_animate
+                    .borrow()
+                    .as_ref()
+                    .map(|animate| request_animation_frame(&cb_system.window, animate)),
+            });
+        });
+        let pause = PlayButton::new(document, handle_play)?;
+        let controls = document.div(["easel-controls"], (pause.root(),))?;
+
         let mut fps = Fps::new(&system.window, document)?;
         let caption = document.caption([], ())?;
         let status = document.div(["easel-status"], (&caption, fps.root()))?;
 
-        let root = document.div([], (canvas.as_ref(), &status))?;
+        let root = document.div([], (canvas.as_ref(), &controls, &status))?;
 
         // Well, I'll be a reference-counted cell of an option! We need to
         // hand the `request_animation_frame` callback to the runtime system so
@@ -92,13 +177,13 @@ impl Easel {
         // Kudos to the wasm-bindgen guide for the Rc/RefCell/Option workaround:
         // <https://rustwasm.github.io/wasm-bindgen/examples/request-animation-frame.html>
         let throttle = Rc::new(RefCell::new(perf::Throttle::default()));
-        let animate = Rc::new(RefCell::new(None));
-        let raf_system = Rc::clone(&system);
+        let raf_system = Rc::clone(system);
         let raf_throttle = Rc::clone(&throttle);
+        let raf_frame_id = Rc::clone(&frame_id);
         let raf_animate = Rc::clone(&animate);
         *animate.borrow_mut() = Some(Closure::<dyn FnMut()>::new(move || {
             if let Some(cb) = raf_animate.borrow().as_ref() {
-                request_animation_frame(&raf_system.window, cb);
+                raf_frame_id.set(Some(request_animation_frame(&raf_system.window, cb)));
                 fps.tick();
                 let mut throttle = raf_throttle.borrow_mut();
                 if throttle.skip() {
@@ -114,9 +199,9 @@ impl Easel {
 
         Ok(Easel {
             root,
-            system,
             throttle,
-            animate,
+            pause,
+            _animate: animate,
         })
     }
 
@@ -127,16 +212,17 @@ impl Easel {
     }
 
     pub fn play(&self) {
-        if let Some(cb) = self.animate.borrow().as_ref() {
-            request_animation_frame(&self.system.window, cb);
-        }
+        self.pause.click();
     }
 
     /// Creates a new [`Easel`] and immediately begins playing its animation.
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn start<F: FnMut(RenderContext) + 'static>(system: Rc<System>, render: F) -> Result<Self> {
+    pub fn start<F: FnMut(RenderContext) + 'static>(
+        system: &Rc<System>,
+        render: F,
+    ) -> Result<Self> {
         let easel = Easel::new(system, render)?;
         easel.play();
         Ok(easel)

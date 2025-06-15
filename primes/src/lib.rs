@@ -32,7 +32,7 @@ impl Chart {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn new(system: Rc<System>) -> Result<Self> {
+    pub fn new(system: &Rc<System>) -> Result<Self> {
         let mut sieve = rk_primes::Sieve::new();
         let mut histogram = Histogram::new();
         let mut factors = Vec::new();

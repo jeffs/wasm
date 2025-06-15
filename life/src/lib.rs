@@ -63,7 +63,7 @@ impl App {
     /// # TODO
     ///
     /// * Decouple state update from rendering.
-    pub fn new(system: Rc<System>) -> Result<Self> {
+    pub fn new(system: &Rc<System>) -> Result<Self> {
         let mut generation = 0;
         let mut universe = Universe::new();
         Ok(App {

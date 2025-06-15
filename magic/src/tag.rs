@@ -120,6 +120,7 @@ macro_rules! tag_with_class_and_text {
     };
 }
 
+tag_with_class_and_text!(CreateButton, button);
 tag_with_class_and_text!(CreateDiv, div);
 tag_with_class_and_text!(CreateH1, h1);
 tag_with_class_and_text!(CreateP, p);
@@ -128,6 +129,7 @@ tag_with_class_and_text!(CreateSpan, span);
 
 pub mod prelude {
     pub use super::{
-        CreateCaption, CreateDiv, CreateH1, CreateP, CreateSpan, caption, div, h1, p, span,
+        CreateButton, CreateCaption, CreateDiv, CreateH1, CreateP, CreateSpan, button, caption,
+        div, h1, p, span,
     };
 }
