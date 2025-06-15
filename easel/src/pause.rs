@@ -1,10 +1,10 @@
-use std::{cell::Cell, ops, rc::Rc};
+use std::{cell::RefCell, ops, rc::Rc};
 
 use magic::tag::CreateButton;
 use wasm_bindgen::prelude::*;
 use web_sys::{Document, Element};
 
-use crate::{RafCallback, Result};
+use crate::Result;
 
 #[derive(Clone, Copy, Default, PartialEq)]
 pub enum State {
@@ -36,44 +36,57 @@ impl ops::Not for State {
     }
 }
 
+struct Captive {
+    state: State,
+    button: Element,
+    on_click: Box<dyn FnMut(State) + 'static>,
+}
+
+impl Captive {
+    fn handle_click(&mut self) {
+        self.state = !self.state;
+        self.button.set_text_content(Some(self.state.text()));
+        (self.on_click)(self.state);
+    }
+}
+
 pub struct Button {
-    root: Element,
-    state: Rc<Cell<State>>,
-    on_click: Rc<dyn Fn(State) + 'static>,
-    _handle_click: RafCallback,
+    cell: Rc<RefCell<Captive>>,
+    _handle_click: Closure<dyn FnMut()>,
 }
 
 impl Button {
-    pub fn new(document: &Document, on_click: Rc<dyn Fn(State) + 'static>) -> Result<Button> {
-        let state = Rc::new(Cell::new(State::default()));
-        let button = document.button(["easel-pause"], state.get().text())?;
+    pub fn new(document: &Document, on_click: impl FnMut(State) + 'static) -> Result<Button> {
+        let state = State::default();
+        let button = document.button(["easel-pause"], state.text())?;
         button.set_attribute("title", "Play/Pause")?;
-        let cb_state = Rc::clone(&state);
-        let cb_button = button.clone();
-        let cb_on_click = Rc::clone(&on_click);
-        let cb = Closure::<dyn FnMut()>::new(move || {
-            let state = !cb_state.get();
-            cb_state.set(state);
-            cb_button.set_text_content(Some(state.text()));
-            cb_on_click(state);
-        });
-        button.add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())?;
-        Ok(Button {
-            root: button,
+
+        let cell = Rc::new(RefCell::new(Captive {
             state,
-            on_click,
-            _handle_click: cb,
+            button,
+            on_click: Box::new(on_click),
+        }));
+
+        let handle_click = Closure::<dyn FnMut()>::new({
+            let cell = Rc::clone(&cell);
+            move || cell.borrow_mut().handle_click()
+        });
+
+        cell.borrow()
+            .button
+            .add_event_listener_with_callback("click", handle_click.as_ref().unchecked_ref())?;
+
+        Ok(Button {
+            cell,
+            _handle_click: handle_click,
         })
     }
 
-    pub fn click(&self) {
-        let state = !self.state.get();
-        self.state.set(state);
-        self.root.set_text_content(Some(state.text()));
-        self.on_click.as_ref()(state);
+    pub fn click(&mut self) {
+        self.cell.borrow_mut().handle_click();
     }
 
-    pub fn root(&self) -> &Element {
-        &self.root
+    pub fn root(&self) -> Element {
+        self.cell.borrow().button.clone()
     }
 }

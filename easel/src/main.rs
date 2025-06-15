@@ -14,7 +14,7 @@ fn main_imp() -> Result<()> {
     };
 
     let system = Rc::new(System::new()?);
-    let app = Box::new(Easel::new(&system, render)?);
+    let mut app = Box::new(Easel::new(&system, render)?);
     system.body.append_child(app.root())?;
     app.play();
     Box::leak(app);

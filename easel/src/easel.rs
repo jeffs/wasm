@@ -59,9 +59,10 @@ fn new_pause_button(
     system: &Rc<System>,
 ) -> Result<pause::Button> {
     let cb_system = Rc::clone(system);
-    let handle_pause = Rc::new(move |state| {
+    let handle_pause = move |state: pause::State| {
         frame_id.set(match state {
             pause::State::Pause => frame_id.get().and_then(|handle| {
+                // TODO: Cancel animation frame in Drop as well.
                 cb_system
                     .window
                     .cancel_animation_frame(handle)
@@ -73,7 +74,7 @@ fn new_pause_button(
                 .as_ref()
                 .map(|animate| request_animation_frame(&cb_system.window, animate)),
         });
-    });
+    };
     pause::Button::new(&system.document, handle_pause)
 }
 
@@ -177,7 +178,7 @@ impl Easel {
         self.throttle.borrow_mut().set_period(period);
     }
 
-    pub fn play(&self) {
+    pub fn play(&mut self) {
         self.pause.click();
     }
 
@@ -190,7 +191,7 @@ impl Easel {
         system: &Rc<System>,
         render: F,
     ) -> Result<Self> {
-        let easel = Easel::new(system, render)?;
+        let mut easel = Easel::new(system, render)?;
         easel.play();
         Ok(easel)
     }

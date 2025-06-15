@@ -53,7 +53,7 @@ impl Chart {
         Ok(Chart { easel })
     }
 
-    pub fn play(&self) {
+    pub fn play(&mut self) {
         self.easel.play();
     }
 
