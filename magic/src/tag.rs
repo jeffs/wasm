@@ -25,6 +25,7 @@ impl Class for [&str; 0] {
 impl<'a> Class for [&'a str; 1] {
     type Output = (&'static str, &'a str);
 
+    /// Augments the specified tag with CSS class `self`.
     fn class(self, tag: &'static str) -> Self::Output {
         let [class] = self;
         (tag, class)
@@ -34,6 +35,7 @@ impl<'a> Class for [&'a str; 1] {
 pub trait Content<T> {
     type Output: IntoComponent;
 
+    /// Augments the specified parent element with `self` as content.
     fn content(self, parent: T) -> Self::Output;
 }
 
@@ -95,6 +97,8 @@ macro_rules! tag_with_class_and_text {
         }
 
         pub trait $trait<C: Class, Co: Content<C::Output>> {
+            /// Creates a component having the specified class and content.
+            ///
             /// # Errors
             ///
             /// May return [`Err`] if DOM interaction fails.

@@ -1,5 +1,17 @@
 .easel-canvas {
+  border: var(--border);
   transform: scale(1, -1);
+}
+
+.easel-controls {
+  display: flex;
+}
+
+.easel-pause {
+  flex-grow: 1;
+  border: var(--border);
+  background-color: var(--dark-jade-green);
+  color: var(--color-fg);
 }
 
 .easel-status {
