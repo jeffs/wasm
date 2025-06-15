@@ -39,7 +39,7 @@ impl ops::Not for State {
 struct Captive {
     state: State,
     button: Element,
-    on_click: Box<dyn FnMut(State) + 'static>,
+    on_click: Box<dyn Fn(State) + 'static>,
 }
 
 impl Captive {
@@ -52,11 +52,11 @@ impl Captive {
 
 pub struct Button {
     cell: Rc<RefCell<Captive>>,
-    _handle_click: Closure<dyn FnMut()>,
+    _handle_click: Closure<dyn Fn()>,
 }
 
 impl Button {
-    pub fn new(document: &Document, on_click: impl FnMut(State) + 'static) -> Result<Button> {
+    pub fn new(document: &Document, on_click: impl Fn(State) + 'static) -> Result<Button> {
         let state = State::default();
         let button = document.button(["easel-pause"], state.text())?;
         button.set_attribute("title", "Play/Pause")?;
@@ -67,7 +67,7 @@ impl Button {
             on_click: Box::new(on_click),
         }));
 
-        let handle_click = Closure::<dyn FnMut()>::new({
+        let handle_click = Closure::<dyn Fn()>::new({
             let cell = Rc::clone(&cell);
             move || cell.borrow_mut().handle_click()
         });

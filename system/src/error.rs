@@ -4,7 +4,6 @@ use wasm_bindgen::JsValue;
 pub enum Error {
     NoWindow,
     NoDocument,
-    NoBody,
 }
 
 impl From<Error> for JsValue {
@@ -12,7 +11,6 @@ impl From<Error> for JsValue {
         JsValue::from_str(match value {
             Error::NoWindow => "no window",
             Error::NoDocument => "no document",
-            Error::NoBody => "no body",
         })
     }
 }

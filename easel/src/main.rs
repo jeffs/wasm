@@ -1,6 +1,4 @@
-use std::rc::Rc;
-
-use easel::{Easel, RenderContext, Result};
+use easel::{Easel, Error, RenderContext, Result};
 use system::System;
 
 fn main_imp() -> Result<()> {
@@ -13,9 +11,10 @@ fn main_imp() -> Result<()> {
         context.caption.set_text_content(Some(&caption));
     };
 
-    let system = Rc::new(System::new()?);
-    let mut app = Box::new(Easel::new(&system, render)?);
-    system.body.append_child(app.root())?;
+    let system = System::new()?;
+    let body = system.document.body().ok_or(Error::NoBody)?;
+    let mut app = Box::new(Easel::new(system, render)?);
+    body.append_child(app.root())?;
     app.play();
     Box::leak(app);
     Ok(())
