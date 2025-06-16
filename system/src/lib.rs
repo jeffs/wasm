@@ -7,10 +7,10 @@ pub use crate::error::{Error, Result};
 
 pub use size::{Size, u32_to_usize, usize_to_u32};
 
+#[derive(Clone)]
 pub struct System {
     pub window: Window,
     pub document: Document,
-    pub body: HtmlElement,
 }
 
 impl System {
@@ -20,11 +20,14 @@ impl System {
     pub fn new() -> Result<System> {
         let window = web_sys::window().ok_or(Error::NoWindow)?;
         let document = window.document().ok_or(Error::NoDocument)?;
-        Ok(System {
-            body: document.body().ok_or(Error::NoBody)?,
-            window,
-            document,
-        })
+        Ok(System { window, document })
+    }
+
+    /// # Errors
+    ///
+    /// Will return [`Error::NoBody`] if the document body cannot be accessed.
+    pub fn body(&self) -> Result<HtmlElement> {
+        self.document.body().ok_or(Error::NoBody)
     }
 }
 

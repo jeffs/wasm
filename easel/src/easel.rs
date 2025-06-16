@@ -6,7 +6,8 @@
 //!   can programmatically start the animation without having to call a
 //!   `JsFunction`.
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
+use std::rc::Weak;
 use std::{num::NonZeroU32, rc::Rc};
 
 use perf::components::Fps;
@@ -16,7 +17,23 @@ use web_sys::{CanvasRenderingContext2d, Document, Element, HtmlCanvasElement, Wi
 
 use magic::prelude::*;
 
-use crate::{Error, RafCallback, Result, System, pause};
+use crate::{Error, Result, pause};
+use system::System;
+
+struct Captive {
+    system: System,
+    throttle: perf::Throttle,
+    raf_handle: Option<i32>,
+    /// Argument for `request_animation_frame`.  [`Option`] because the closure
+    /// must capture this shared (captive) state, but is referenced by that
+    /// state; so, to break that cycle, we create the state with the option set
+    /// to `None`, then mutate it.
+    ///
+    /// Kudos to the wasm-bindgen guide for the Rc/RefCell/Option workaround:
+    /// <https://rustwasm.github.io/wasm-bindgen/examples/request-animation-frame.html>
+    raf_callback: Option<Closure<dyn FnMut()>>,
+    fps: Fps,
+}
 
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     Ok(("canvas", "easel-canvas")
@@ -40,7 +57,7 @@ pub fn canvas_size(canvas: impl AsRef<HtmlCanvasElement>) -> Size {
     }
 }
 
-fn request_animation_frame(window: &Window, f: &RafCallback) -> i32 {
+fn request_animation_frame(window: &Window, f: &Closure<dyn FnMut()>) -> i32 {
     window
         .request_animation_frame(f.as_ref().unchecked_ref())
         .expect("requesting animation frame")
@@ -53,28 +70,32 @@ pub struct RenderContext<'a> {
     pub throttle: NonZeroU32,
 }
 
-fn new_pause_button(
-    frame_id: Rc<Cell<Option<i32>>>,
-    animate: Rc<RefCell<Option<RafCallback>>>,
-    system: &Rc<System>,
-) -> Result<pause::Button> {
-    let cb_system = Rc::clone(system);
-    let handle_pause = Rc::new(move |state| {
-        frame_id.set(match state {
-            pause::State::Pause => frame_id.get().and_then(|handle| {
-                cb_system
+fn new_pause_button(cell: &Rc<RefCell<Captive>>) -> Result<pause::Button> {
+    let weak = Rc::downgrade(cell);
+    let handle_pause = move |state: pause::State| {
+        let Some(strong) = weak.upgrade() else {
+            return;
+        };
+        let mut captive = strong.borrow_mut();
+        captive.raf_handle = match state {
+            // On pause: If there's an active frame, cancel it. Iff the
+            // cancellation succeeds, set the frame ID to None.
+            pause::State::Pause => captive.raf_handle.and_then(|id| {
+                // TODO: Cancel animation frame in Drop as well.
+                captive
+                    .system
                     .window
-                    .cancel_animation_frame(handle)
+                    .cancel_animation_frame(id)
                     .err()
-                    .map(|_| handle)
+                    .map(|_| id)
             }),
-            pause::State::Play => animate
-                .borrow()
+            pause::State::Play => captive
+                .raf_callback
                 .as_ref()
-                .map(|animate| request_animation_frame(&cb_system.window, animate)),
-        });
-    });
-    pause::Button::new(&system.document, handle_pause)
+                .map(|callback| request_animation_frame(&captive.system.window, callback)),
+        };
+    };
+    pause::Button::new(&cell.borrow().system.document, handle_pause)
 }
 
 /// Well, I'll be a reference-counted cell of an option! We need to hand the
@@ -85,19 +106,19 @@ fn new_pause_button(
 /// Kudos to the wasm-bindgen guide for the Rc/RefCell/Option workaround:
 /// <https://rustwasm.github.io/wasm-bindgen/examples/request-animation-frame.html>
 fn new_raf_callback(
-    system: Rc<System>,
-    throttle: Rc<RefCell<perf::Throttle>>,
-    frame_id: Rc<Cell<Option<i32>>>,
-    animate: Rc<RefCell<Option<RafCallback>>>,
-    mut fps: Fps,
-    mut render: impl FnMut() + 'static,
-) -> RafCallback {
+    cell: Weak<RefCell<Captive>>,
+    mut render: impl FnMut(NonZeroU32) + 'static,
+) -> Closure<dyn FnMut()> {
     Closure::<dyn FnMut()>::new(move || {
-        if let Some(cb) = animate.borrow().as_ref() {
-            frame_id.set(Some(request_animation_frame(&system.window, cb)));
-            fps.tick();
-            if !throttle.borrow_mut().skip() {
-                render();
+        let Some(strong) = cell.upgrade() else {
+            return;
+        };
+        let mut captive = strong.borrow_mut();
+        if let Some(cb) = captive.raf_callback.as_ref() {
+            captive.raf_handle = Some(request_animation_frame(&captive.system.window, cb));
+            captive.fps.tick();
+            if !captive.throttle.skip() {
+                render(captive.throttle.period());
             }
         }
     })
@@ -114,70 +135,60 @@ fn new_raf_callback(
 /// ).
 pub struct Easel {
     root: Element,
-    throttle: Rc<RefCell<perf::Throttle>>,
+    cell: Rc<RefCell<Captive>>,
     pause: pause::Button,
-    _animate: Rc<RefCell<Option<RafCallback>>>,
 }
 
 impl Easel {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn new<F: FnMut(RenderContext) + 'static>(
-        system: &Rc<System>,
-        mut render: F,
-    ) -> Result<Self> {
-        let document = &system.document;
+    pub fn new<F: FnMut(RenderContext) + 'static>(system: System, mut render: F) -> Result<Self> {
+        let document = &system.document.clone();
 
         let canvas = new_canvas(document)?;
         let context = get_context(&canvas)?;
 
-        let frame_id = Rc::new(Cell::new(None));
-        let animate = Rc::new(RefCell::new(None));
+        let cell = Rc::new(RefCell::new(Captive {
+            throttle: perf::Throttle::default(),
+            raf_handle: None,
+            raf_callback: None,
+            fps: Fps::new(&system.window, document)?,
+            system,
+        }));
 
-        let pause = new_pause_button(Rc::clone(&frame_id), Rc::clone(&animate), system)?;
+        // /// Callback function supplied to the [`Easel`] constructor.
+        // render: Box<dyn FnMut(RenderContext) + 'static>,
+
+        let pause = new_pause_button(&cell)?;
         let controls = document.div(["easel-controls"], (pause.root(),))?;
 
-        let fps = Fps::new(&system.window, document)?;
         let caption = document.caption([], ())?;
-        let status = document.div(["easel-status"], (&caption, fps.root()))?;
+        let status = document.div(["easel-status"], (&caption, cell.borrow().fps.root()))?;
 
         let root = document.div([], (canvas.as_ref(), &controls, &status))?;
 
-        let throttle = Rc::new(RefCell::new(perf::Throttle::default()));
-        let cb_throttle = Rc::clone(&throttle);
-        let raf_render = move || {
+        let raf_render = move |throttle: NonZeroU32| {
             render(RenderContext {
                 canvas: &context,
                 caption: &caption,
-                throttle: cb_throttle.borrow().period(),
+                throttle,
             });
         };
 
-        *animate.borrow_mut() = Some(new_raf_callback(
-            Rc::clone(system),
-            Rc::clone(&throttle),
-            Rc::clone(&frame_id),
-            Rc::clone(&animate),
-            fps,
-            raf_render,
-        ));
+        let weak = Rc::downgrade(&cell);
+        cell.borrow_mut().raf_callback = Some(new_raf_callback(weak, raf_render));
 
-        Ok(Easel {
-            root,
-            throttle,
-            pause,
-            _animate: animate,
-        })
+        Ok(Easel { root, cell, pause })
     }
 
     /// Increase this number to slow the animation. The canvas updates on every Nth
     /// frame; so, at 60fps, a throttle of 60 updates about once per second.
     pub fn throttle(&mut self, period: NonZeroU32) {
-        self.throttle.borrow_mut().set_period(period);
+        self.cell.borrow_mut().throttle.set_period(period);
     }
 
-    pub fn play(&self) {
+    pub fn play(&mut self) {
         self.pause.click();
     }
 
@@ -186,11 +197,8 @@ impl Easel {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn start<F: FnMut(RenderContext) + 'static>(
-        system: &Rc<System>,
-        render: F,
-    ) -> Result<Self> {
-        let easel = Easel::new(system, render)?;
+    pub fn start<F: FnMut(RenderContext) + 'static>(system: System, render: F) -> Result<Self> {
+        let mut easel = Easel::new(system, render)?;
         easel.play();
         Ok(easel)
     }

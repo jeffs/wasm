@@ -19,8 +19,6 @@
 
 mod universe;
 
-use std::rc::Rc;
-
 use easel::{Easel, RenderContext, Result, canvas_size};
 use system::{Size, System};
 use universe::{Cell, Point, Universe};
@@ -63,7 +61,7 @@ impl App {
     /// # TODO
     ///
     /// * Decouple state update from rendering.
-    pub fn new(system: &Rc<System>) -> Result<Self> {
+    pub fn new(system: System) -> Result<Self> {
         let mut generation = 0;
         let mut universe = Universe::new();
         Ok(App {

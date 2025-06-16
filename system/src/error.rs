@@ -4,6 +4,8 @@ use wasm_bindgen::JsValue;
 pub enum Error {
     NoWindow,
     NoDocument,
+    /// The document had no body.
+    /// <https://www.youtube.com/watch?v=6s7Dsb0v178&t=67s>
     NoBody,
 }
 
@@ -12,7 +14,7 @@ impl From<Error> for JsValue {
         JsValue::from_str(match value {
             Error::NoWindow => "no window",
             Error::NoDocument => "no document",
-            Error::NoBody => "no body",
+            Error::NoBody => "document should have a body element",
         })
     }
 }

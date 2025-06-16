@@ -3,7 +3,7 @@ use wasm_bindgen::JsValue;
 
 #[derive(Debug)]
 pub enum Error {
-    /// The window, document, or body could not be accessed.
+    /// The window or document could not be accessed.
     System(system::Error),
     /// The canvas could not provide a 2D drawing context.
     Context2d,

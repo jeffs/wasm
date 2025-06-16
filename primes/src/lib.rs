@@ -15,7 +15,7 @@
 mod fill;
 mod histogram;
 
-use std::{num::NonZeroU32, rc::Rc};
+use std::num::NonZeroU32;
 
 use easel::{Easel, RenderContext, Result};
 use web_sys::Element;
@@ -32,7 +32,7 @@ impl Chart {
     /// # Errors
     ///
     /// Will return [`Err`] if DOM interaction fails.
-    pub fn new(system: &Rc<System>) -> Result<Self> {
+    pub fn new(system: System) -> Result<Self> {
         let mut sieve = rk_primes::Sieve::new();
         let mut histogram = Histogram::new();
         let mut factors = Vec::new();
@@ -53,7 +53,7 @@ impl Chart {
         Ok(Chart { easel })
     }
 
-    pub fn play(&self) {
+    pub fn play(&mut self) {
         self.easel.play();
     }
 
