@@ -24,7 +24,7 @@ use system::{Size, System};
 use universe::{Cell, Point, Universe};
 use web_sys::{CanvasRenderingContext2d, Element};
 
-const CELL_SIZE: u32 = 6;
+const CELL_SIZE: u32 = 2;
 const LIVE_COLOR: &str = "hsl(145, 19%, 45%)"; // Dark jade.
 
 /// TODO: Draw all the dead cells, then the live cells, to avoid gratuitous
