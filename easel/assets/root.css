@@ -1,6 +1,5 @@
 .easel-canvas {
   border: var(--border);
-  transform: scale(1, -1);
 }
 
 .easel-controls {
