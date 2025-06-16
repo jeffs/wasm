@@ -1,10 +1,13 @@
-//! Provides functions for common tags. Each tag function (`h1`, `p`, etc.)
-//! takes two arguments: An array of class names, and a tuple of children.
-//! Either may be empty.
-//!
-//! The array of class names currently has a maximum size of 1. To specify
-//! multiple class names, separate them with spaces.
+use web_sys::Element;
 
+/// Provides functions for creating DOM elements from tag names, with optional
+/// class names and contents.. Each tag function (`h1`, `p`, etc.) takes two
+/// arguments: An array of class names, and a tuple of children. Either may
+/// be empty. Moreover, rather than a tuple, a single element or string may be
+/// specified as content.
+///
+/// The array of class names currently has a maximum size of 1. To specify
+/// multiple class names, separate them with spaces.
 use super::component::IntoComponent;
 use super::js::Result;
 
@@ -53,6 +56,15 @@ impl<P: IntoComponent> Content<P> for () {
 
     fn content(self, parent: P) -> Self::Output {
         parent
+    }
+}
+
+/// Single child, when the child type is unambiguous..
+impl<P: IntoComponent> Content<P> for Element {
+    type Output = (P, Element);
+
+    fn content(self, parent: P) -> Self::Output {
+        (parent, self)
     }
 }
 

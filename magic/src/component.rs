@@ -22,7 +22,6 @@ pub trait IntoComponent {
     fn into_component(self, context: &Self::Context) -> Result<Self::Component>;
 }
 
-/// TODO: Is this useful?
 impl IntoComponent for Element {
     type Context = EmptyContext;
     type Component = Self;
@@ -86,6 +85,18 @@ impl<Parent: IntoComponent> IntoComponent for (Parent, &str) {
     fn into_component(self, context: &Self::Context) -> Result<Self::Component> {
         let parent = self.0.into_component(context)?;
         parent.as_ref().set_text_content(Some(self.1));
+        Ok(parent)
+    }
+}
+
+/// The element becomes a child of the parent.
+impl<Parent: IntoComponent> IntoComponent for (Parent, Element) {
+    type Context = Parent::Context;
+    type Component = Parent::Component;
+
+    fn into_component(self, context: &Self::Context) -> Result<Self::Component> {
+        let parent = self.0.into_component(context)?;
+        parent.as_ref().append_child(&self.1)?;
         Ok(parent)
     }
 }

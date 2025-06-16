@@ -27,6 +27,16 @@ struct Captive {
     fps: Fps,
 }
 
+/// When the fall is all there is, it matters.
+/// <https://www.youtube.com/watch?v=lKGPiecEEbA>
+impl Drop for Captive {
+    fn drop(&mut self) {
+        if let Some(id) = self.raf_handle {
+            _ = self.system.window.cancel_animation_frame(id);
+        }
+    }
+}
+
 fn new_canvas(document: &Document) -> Result<HtmlCanvasElement> {
     Ok(("canvas", "easel-canvas")
         .into_component(document)
@@ -73,7 +83,6 @@ fn new_pause_button(cell: &Rc<RefCell<Captive>>) -> Result<pause::Button> {
             // On pause: If there's an active frame, cancel it. Iff the
             // cancellation succeeds, set the frame ID to None.
             pause::State::Pause => captive.raf_handle.and_then(|id| {
-                // TODO: Cancel animation frame in Drop as well.
                 captive
                     .system
                     .window
@@ -150,7 +159,7 @@ impl Easel {
         }));
 
         let pause = new_pause_button(&cell)?;
-        let controls = document.div(["easel-controls"], (pause.root(),))?;
+        let controls = document.div(["easel-controls"], pause.root())?;
 
         let caption = document.caption([], ())?;
         let status = document.div(["easel-status"], (&caption, cell.borrow().fps.root()))?;
