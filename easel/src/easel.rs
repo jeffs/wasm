@@ -1,11 +1,3 @@
-//! # TODO
-//!
-//! * Factor out a single object, held by a single `Rc`, and obviate all of the
-//!   lower level `Rc` pointers.
-//! * Once that's done, factor out the play/pause functionality so we
-//!   can programmatically start the animation without having to call a
-//!   `JsFunction`.
-
 use std::cell::RefCell;
 use std::rc::Weak;
 use std::{num::NonZeroU32, rc::Rc};
@@ -156,9 +148,6 @@ impl Easel {
             fps: Fps::new(&system.window, document)?,
             system,
         }));
-
-        // /// Callback function supplied to the [`Easel`] constructor.
-        // render: Box<dyn FnMut(RenderContext) + 'static>,
 
         let pause = new_pause_button(&cell)?;
         let controls = document.div(["easel-controls"], (pause.root(),))?;
