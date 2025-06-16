@@ -24,15 +24,45 @@ pub struct Point {
     pub j: u32,
 }
 
+fn at(rows: &[Vec<Cell>], p: Point) -> Cell {
+    rows[u32_to_usize(p.i)][u32_to_usize(p.j)]
+}
+
+fn count_live_neighbors(rows: &[Vec<Cell>], size: Size, p: Point) -> u8 {
+    let mut count = 0;
+    let Size {
+        height: h,
+        width: w,
+    } = size;
+    for di in [h - 1, 0, 1] {
+        for dj in [w - 1, 0, 1] {
+            if di == 0 && dj == 0 {
+                continue;
+            }
+            let q = Point {
+                i: (p.i + di) % h,
+                j: (p.j + dj) % w,
+            };
+            count += at(rows, q).to_u8();
+        }
+    }
+    count
+}
+
 #[derive(Clone)]
 pub struct Universe {
     /// Rectangular grid.
     rows: Vec<Vec<Cell>>,
+    // Cache to avoid reallocations.
+    last: Vec<Vec<Cell>>,
 }
 
 impl Universe {
     pub fn new() -> Universe {
-        Universe { rows: Vec::new() }
+        Universe {
+            rows: Vec::new(),
+            last: Vec::new(),
+        }
     }
 
     pub fn resize(&mut self, size: Size) {
@@ -54,6 +84,12 @@ impl Universe {
             .unwrap_or_default()
     }
 
+    fn size(&self) -> Size {
+        let height = self.height();
+        let width = self.width();
+        Size { height, width }
+    }
+
     pub fn at(&self, p: Point) -> Cell {
         self.rows[u32_to_usize(p.i)][u32_to_usize(p.j)]
     }
@@ -62,54 +98,23 @@ impl Universe {
         self.rows[u32_to_usize(i)][u32_to_usize(j)] = c;
     }
 
-    fn live_neighbor_count(&self, p: Point) -> u8 {
-        let mut count = 0;
-        let [h, w] = [self.height(), self.width()];
-        for di in [h - 1, 0, 1] {
-            for dj in [w - 1, 0, 1] {
-                if di == 0 && dj == 0 {
-                    continue;
-                }
-                let q = Point {
-                    i: (p.i + di) % h,
-                    j: (p.j + dj) % w,
-                };
-                count += self.at(q).to_u8();
-            }
-        }
-        count
-    }
-
     pub fn tick(&mut self) {
-        // TODO: Cache second buffer in self.
-        let mut next = self.clone();
-
-        for i in 0..self.height() {
-            for j in 0..self.width() {
+        let size = self.size();
+        mem::swap(&mut self.rows, &mut self.last);
+        self.resize(size);
+        for i in 0..size.height {
+            for j in 0..size.width {
                 let p = Point { i, j };
-                let c = self.at(p);
-                let n = self.live_neighbor_count(p);
+                let c = at(&self.last, p);
+                let n = count_live_neighbors(&self.last, size, p);
                 let d = match (c, n) {
-                    // Rule 1: Any live cell with fewer than two live neighbours
-                    // dies, as if caused by underpopulation.
-                    //
-                    // Rule 3: Any live cell with more than three live
-                    // neighbours dies, as if by overpopulation.
                     (Cell::Live, x) if !(2..=3).contains(&x) => Cell::Dead,
-                    // Rule 2: Any live cell with two or three live neighbours
-                    // lives on to the next generation.
-                    //
-                    // Rule 4: Any dead cell with exactly three live neighbours
-                    // becomes a live cell, as if by reproduction.
                     (Cell::Live, _) | (Cell::Dead, 3) => Cell::Live,
-                    // All other cells remain in the same state.
                     _ => c,
                 };
-                next.set(i, j, d);
+                self.set(i, j, d);
             }
         }
-
-        mem::swap(self, &mut next);
     }
 
     pub fn speckle(&mut self) {
