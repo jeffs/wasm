@@ -1,0 +1,25 @@
+.easel-canvas {
+  border: var(--border);
+}
+
+.easel-controls {
+  display: flex;
+}
+
+/* TODO: Define site-wide button style. */
+.easel-pause {
+  flex-grow: 1;
+  border: var(--border);
+  background-color: var(--dark-jade-green);
+  color: var(--color-fg);
+}
+
+.easel-pause:hover {
+  background-color: hsl(181, 90%, 18%);
+  color: hsl(159, 21%, 75%);
+}
+
+.easel-status {
+  display: flex;
+  justify-content: space-between;
+}

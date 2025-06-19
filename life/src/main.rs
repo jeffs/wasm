@@ -1,16 +1,11 @@
-use std::rc::Rc;
-
-fn main_imp() -> life::Result<()> {
-    console_error_panic_hook::set_once();
-    let system = Rc::new(life::System::new()?);
-    let app = Box::new(life::App::new(&system)?);
-    system.body.append_child(&app.root)?;
-    Box::leak(app);
-    Ok(())
-}
+use wasm_bindgen::JsValue;
 
 fn main() {
-    if let Err(err) = main_imp() {
+    console_error_panic_hook::set_once();
+
+    if let Err(err) = layout::immortalize("Conway's Game of<br />🦋 Life 🐛", |system| {
+        life::App::new(system).map_err(JsValue::from)
+    }) {
         web_sys::console::error_1(&err.into());
     }
 }

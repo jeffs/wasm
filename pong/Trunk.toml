@@ -1,5 +1,5 @@
 [build]
-html_output = "life.html"
+html_output = "pong.html"
 minify = "on_release"
 
 [serve]

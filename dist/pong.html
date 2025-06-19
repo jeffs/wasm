@@ -1,0 +1,8 @@
+<!doctype html><html lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0" name=viewport><link href=/root-a2224b98286a8903.css integrity=sha384-o/luf7isokWn33qVtXp+slBtqHwqIFGw3d3VUAMeBl8lMJxcAVNjuHlm/y2raUlT rel=stylesheet><link href=/root-771d8fde53ee0064.css integrity=sha384-37sNcX6e/WABrmExN8MFR8dU2PzcT7O2+JAOLzDjP5i6Wp6tDkN99n8fIm4X9c5D rel=stylesheet><link href=/root-51ce44567117adbf.css integrity=sha384-ZIGIS60aAjykL2Yr4G1bJs0lsxtg9e4iLWE78bRPhmkWx5VDMFwzSU7sBFmYEhNB rel=stylesheet><link href=/root-5df8f3689f80e722.css integrity=sha384-b2DcrjjcEGtUtVjGnbHomf/j540WCdgu+gfKunf96xZSnPZT1Kmf7tGp6GvXABtj rel=stylesheet><link href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%2210 0 100 100%22><text y=%22.90em%22 font-size=%2290%22>🎾</text></svg>" rel=icon><title>Pong | Jeff's Wasm</title><link crossorigin href=/pong-cd255a9038ce5298.js integrity=sha384-HwjDMVqYZEkPjayqtiyiYYd43RCYi9usnQaJTx/FYd5r3Jx5OlyEON0rEnHlqcVa rel=modulepreload><link as=fetch crossorigin href=/pong-cd255a9038ce5298_bg.wasm integrity=sha384-eJ6CRzoR3vjFIL9rL/L7ooQr5Ua87+WY/IQI24N+O/SccGrvQEZaJAEu/XBeMyPQ rel=preload type=application/wasm></head><body><script type=module>import init, * as bindings from '/pong-cd255a9038ce5298.js';
+const wasm = await init({ module_or_path: '/pong-cd255a9038ce5298_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));</script></body></html>

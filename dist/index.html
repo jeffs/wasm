@@ -1,0 +1,8 @@
+<!doctype html><html lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1" name=viewport><link href=/root-a2224b98286a8903.css integrity=sha384-o/luf7isokWn33qVtXp+slBtqHwqIFGw3d3VUAMeBl8lMJxcAVNjuHlm/y2raUlT rel=stylesheet><link href=/root-e2cf50eb033f65d5.css integrity=sha384-aJxI0A3pjxZXTePwQuit/W8kEHtGt6iJp1+YrPtK1Vi2ExjBV0AIqFAuHmjUEHU2 rel=stylesheet><link href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%2210 0 100 100%22><text y=%22.90em%22 font-size=%2290%22>💭</text></svg>" rel=icon><title>Jeff's Wasm</title><link crossorigin href=/index-b851e1745095e3ba.js integrity=sha384-0ECM0UBQmNumOjXKSGbxKT4ngjtJ0mrVbxDKrEpWblasKh6C5Iogn3HoW12FEYUy rel=modulepreload><link as=fetch crossorigin href=/index-b851e1745095e3ba_bg.wasm integrity=sha384-oFdNuUVMs3saxQHp6x5gu0hrLHKuzvqpLa1DlbbTXg/TfsVfXuU/b2381cyVyB/G rel=preload type=application/wasm></head><body><script type=module>import init, * as bindings from '/index-b851e1745095e3ba.js';
+const wasm = await init({ module_or_path: '/index-b851e1745095e3ba_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));</script></body></html>

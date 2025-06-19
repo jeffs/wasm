@@ -1,5 +1,5 @@
 [package]
-name = "life"
+name = "easel"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,8 +7,11 @@ edition = "2024"
 console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2.100"
 
-easel = { path = "../easel" }
+rk-primes = { git = "https://github.com/jeffs/rust-kart", package = "rk-primes"}
+
+perf = { path = "../perf" }
 layout = { path = "../layout" }
+sugar = { path = "../sugar" }
 system = { path = "../system" }
 
 [dependencies.web-sys]
@@ -16,6 +19,8 @@ version = "0.3.77"
 features = [
   "CanvasRenderingContext2d",
   "Document",
+  "HtmlCanvasElement",
+  "Node",
   "Window",
   "console",
 ]

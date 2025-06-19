@@ -1,0 +1,83 @@
+/* TODO: Make values available in Rust. One option is to hard-code them, and
+ *  manually maintain the correlation between CSS and Rust declarations.
+ */
+:root {
+  --bronze-gold: hsl(39, 26%, 44%);
+  --dark-jade-green: hsl(181, 90%, 12%);
+  --dark-jade: hsl(145, 19%, 45%);
+  --ebony: hsl(243, 44%, 8%);
+  --gold: hsl(51, 100%, 50%);
+  --ivory: hsl(60, 100%, 97%);
+  --jade: hsl(158, 100%, 33%);
+  --topaz: hsl(200, 99%, 44%);
+  --pewter: hsl(159, 7%, 57%);
+  --graphite: hsl(30, 65%, 9%);
+
+  --color-bg: var(--ebony);
+  --color-fg: var(--pewter);
+  --color-link: var(--topaz);
+
+  --border: 1px solid var(--graphite);
+  --border-radius: 4px;
+
+  --pad: 4px;
+  --gap: 8px;
+  --text-size: 16px;
+  --label-size: 16px;
+}
+
+html,
+body {
+  /* Internal layout */
+  box-sizing: border-box;
+  /* Color */
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+*,
+*::before,
+*::after {
+  /* Internal layout */
+  box-sizing: inherit;
+}
+
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+button,
+canvas,
+div {
+  border-radius: var(--border-radius);
+}
+
+canvas {
+  /* Canvas display default is inline, which causes it to be followed by extra
+   * space.  See also: <https://stackoverflow.com/a/73831830/3116635>
+   */
+  display: block;
+}
+
+.layout-header {
+  padding: 8px;
+  border-bottom: 4px solid var(--dark-jade);
+}
+
+.layout-main {
+  /* Internal layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Font */
+  font-size: var(--text-size);
+  /* External layout */
+  margin: auto;
+}
+
+.layout-main__title {
+  text-align: center;
+}

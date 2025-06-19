@@ -1,0 +1,1 @@
+.easel-canvas{border:var(--border)}.easel-controls{display:flex}.easel-pause{border:var(--border);background-color:var(--dark-jade-green);color:var(--color-fg);flex-grow:1}.easel-pause:hover{color:#b2cdc3;background-color:#055657}.easel-status{justify-content:space-between;display:flex}

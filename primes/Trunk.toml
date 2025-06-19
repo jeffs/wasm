@@ -1,5 +1,5 @@
 [build]
-html_output = "life.html"
+html_output = "primes.html"
 minify = "on_release"
 
 [serve]

@@ -1,0 +1,15 @@
+[workspace]
+
+resolver = "3"
+
+members = [
+  "easel",
+  "index",
+  "layout",
+  "life",
+  "perf",
+  "pong",
+  "primes",
+  "sugar",
+  "system",
+]

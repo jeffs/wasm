@@ -1,0 +1,9 @@
+# Whence GitHub Pages serves static content.
+docs/
+
+# Cargo build output.
+target/
+
+# Trunk output
+dist/
+!/dist/

@@ -1,5 +1,5 @@
 [package]
-name = "life"
+name = "pong"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,6 +9,7 @@ wasm-bindgen = "0.2.100"
 
 easel = { path = "../easel" }
 layout = { path = "../layout" }
+sugar = { path = "../sugar" }
 system = { path = "../system" }
 
 [dependencies.web-sys]
@@ -16,6 +17,9 @@ version = "0.3.77"
 features = [
   "CanvasRenderingContext2d",
   "Document",
+  "KeyboardEvent",
+  "FocusOptions",
+  "HtmlElement",
   "Window",
   "console",
 ]

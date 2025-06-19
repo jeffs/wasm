@@ -1,0 +1,62 @@
+@font-face {
+  font-family: "04b03";
+  src:
+    local("04b03"),
+    local("04b_03"),
+    url("04B_03__.TTF");
+}
+
+.pong {
+  position: relative;
+  /* These values are for scaling the canvas to the device using CSS. They are
+   * unrelated to similarly named values in the accompanying Rust code, which
+   * are for scaling a virtual world to the canvas.
+   */
+  --canvas-scale: 2;
+  --canvas-width: 639px;
+  --canvas-height: 360px;
+}
+
+.pong .easel-canvas {
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+}
+
+/* Overlay to show place items in front of the canvas. */
+.pong-glass {
+  /* External layout */
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+  /* Internal layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Font */
+  font: 16px "04b03";
+  /* Color */
+  color: var(--ivory);
+}
+
+.pong-hello {
+  position: absolute;
+  top: 10px;
+  width: 100%;
+  text-align: center;
+}
+
+.pong-score {
+  position: relative;
+  top: 110px;
+  width: 50%;
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.pong-score__span {
+  font-size: 48px;
+  width: 2em;
+  text-align: center;
+}
