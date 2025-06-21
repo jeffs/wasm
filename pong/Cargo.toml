@@ -9,6 +9,7 @@ wasm-bindgen = "0.2.100"
 
 easel = { path = "../easel" }
 layout = { path = "../layout" }
+math = { path = "../math" }
 sugar = { path = "../sugar" }
 system = { path = "../system" }
 

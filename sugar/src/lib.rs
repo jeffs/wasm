@@ -1,4 +1,4 @@
-mod js;
+pub mod js;
 
 use wasm_bindgen::JsValue;
 use web_sys::Element;
@@ -15,14 +15,12 @@ pub trait ToElement {
 }
 
 impl ToElement for Element {
-    /// TODO: Validate that this element lives in the specified system.
     fn to_element(&self, _: &System) -> Result<Element> {
         Ok(self.clone())
     }
 }
 
 impl ToElement for &Element {
-    /// TODO: Validate that this element lives in the specified system.
     fn to_element(&self, _: &System) -> Result<Element> {
         Ok((*self).clone())
     }
@@ -208,6 +206,7 @@ pub mod prelude {
     pub const CANVAS: Tag = Tag("canvas");
     pub const CAPTION: Tag = Tag("caption");
     pub const H1: Tag = Tag("h1");
+    pub const H2: Tag = Tag("h2");
     pub const DIV: Tag = Tag("div");
     pub const HEADER: Tag = Tag("header");
     pub const LI: Tag = Tag("li");

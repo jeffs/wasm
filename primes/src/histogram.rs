@@ -1,6 +1,6 @@
 use easel::canvas_size;
 use rk_primes::Sieve;
-use system::{Size, usize_to_u32};
+use system::{SizeU32, usize_to_u32};
 use web_sys::CanvasRenderingContext2d;
 
 use crate::fill::FillStyle;
@@ -35,17 +35,17 @@ struct Columns<'a> {
     /// The exponents represented by these columns.
     powers: &'a [u32],
     /// The size of each brick.
-    brick: Size,
+    brick: SizeU32,
     /// The index in [`Self::powers`] of the next column to return.
     index: usize,
 }
 
 impl Columns<'_> {
-    fn new(powers: &[u32], canvas: Size) -> Columns {
+    fn new(powers: &[u32], canvas: SizeU32) -> Columns {
         let max_power = powers.iter().copied().max().unwrap_or(1);
         Columns {
             powers,
-            brick: Size {
+            brick: SizeU32 {
                 height: canvas.height.checked_div(max_power).unwrap_or_default(),
                 width: canvas
                     .width

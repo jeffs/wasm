@@ -5,7 +5,7 @@ use web_sys::{Document, HtmlElement, Window};
 
 pub use crate::error::{Error, Result};
 
-pub use size::{Size, u32_to_usize, usize_to_u32};
+pub use size::{SizeF64, SizeU32, f64_to_u32_saturating, u32_to_usize, usize_to_u32};
 
 #[derive(Clone)]
 pub struct System {

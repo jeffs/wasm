@@ -13,13 +13,12 @@
 //! * [] Try WebGPU
 //!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
 //!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
-//! * [] Make a game: <https://www.youtube.com/watch?v=c-1dBd1_G8A>
 //! * [] Implement hashlife, and the exercises from the Game of Life tutorial
 
 mod universe;
 
 use easel::{Easel, RenderContext, Result, canvas_size};
-use system::{Size, System};
+use system::{SizeU32, System};
 use universe::{Cell, Point, Universe};
 use web_sys::{CanvasRenderingContext2d, Element};
 
@@ -66,7 +65,7 @@ impl App {
                 let is_new = universe.height() == 0;
                 let canvas = easel.canvas;
                 let size = canvas.canvas().map(canvas_size).unwrap_or_default();
-                universe.resize(Size {
+                universe.resize(SizeU32 {
                     width: size.width / CELL_SIZE,
                     height: size.height / CELL_SIZE,
                 });

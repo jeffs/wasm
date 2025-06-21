@@ -32,6 +32,7 @@ macro_rules! into {
 
 into!(&str);
 into!(bool);
+into!(f32);
 into!(f64);
 into!(u32);
 into!(usize);

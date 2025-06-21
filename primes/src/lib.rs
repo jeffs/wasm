@@ -7,10 +7,9 @@
 //!
 //! # TODO
 //!
-//! * [] Add a Play/Pause and Fast Forward buttons to the UI
-//! * [] Try WebGPU
-//!   - <https://demyanov.dev/past-and-future-html-canvas-brief-overview-2d-webgl-and-webgpu>
-//!   - <https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API>
+//! * [] Add settings, such as speed control and color selection, to the UI.
+//! * [] Add audio, such as mapping primes to piano keys.
+//! * [] Instead of a canvas, animate DOM elements with intuitive transitions.
 
 mod fill;
 mod histogram;

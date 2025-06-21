@@ -60,3 +60,31 @@
   width: 2em;
   text-align: center;
 }
+
+.pong-help {
+  display: flex;
+  justify-content: space-between;
+  width: var(--canvas-width);
+  height: var(--canvas-height);
+  text-align: center;
+  margin-top: 16px;
+}
+
+.pong-help-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pong-help-row {
+  display: block;
+  margin: 8px 0px;
+}
+
+.pong-help-key {
+  font: 20px "04b03";
+  background-color: rgb(40, 45, 52);
+  border-radius: 4px;
+  padding: 8px;
+  margin: 0px 16px;
+}

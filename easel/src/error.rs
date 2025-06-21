@@ -1,4 +1,4 @@
-use perf::components::FpsError;
+use perf::FpsError;
 use wasm_bindgen::JsValue;
 
 #[derive(Debug)]

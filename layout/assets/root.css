@@ -1,6 +1,3 @@
-/* TODO: Make values available in Rust. One option is to hard-code them, and
- *  manually maintain the correlation between CSS and Rust declarations.
- */
 :root {
   --bronze-gold: hsl(39, 26%, 44%);
   --dark-jade-green: hsl(181, 90%, 12%);
@@ -56,7 +53,7 @@ div {
 
 canvas {
   /* Canvas display default is inline, which causes it to be followed by extra
-   * space.  See also: <https://stackoverflow.com/a/73831830/3116635>
+   * space. See also: <https://stackoverflow.com/a/73831830/3116635>
    */
   display: block;
 }

@@ -1,6 +1,6 @@
 use std::mem;
 
-use system::{Size, u32_to_usize, usize_to_u32};
+use system::{SizeU32, u32_to_usize, usize_to_u32};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Cell {
@@ -28,9 +28,9 @@ fn at(rows: &[Vec<Cell>], p: Point) -> Cell {
     rows[u32_to_usize(p.i)][u32_to_usize(p.j)]
 }
 
-fn count_live_neighbors(rows: &[Vec<Cell>], size: Size, p: Point) -> u8 {
+fn count_live_neighbors(rows: &[Vec<Cell>], size: SizeU32, p: Point) -> u8 {
     let mut count = 0;
-    let Size {
+    let SizeU32 {
         height: h,
         width: w,
     } = size;
@@ -65,7 +65,7 @@ impl Universe {
         }
     }
 
-    pub fn resize(&mut self, size: Size) {
+    pub fn resize(&mut self, size: SizeU32) {
         self.rows.resize_with(u32_to_usize(size.height), Vec::new);
         for row in &mut self.rows {
             row.resize(u32_to_usize(size.width), Cell::Dead);
@@ -84,10 +84,10 @@ impl Universe {
             .unwrap_or_default()
     }
 
-    fn size(&self) -> Size {
+    fn size(&self) -> SizeU32 {
         let height = self.height();
         let width = self.width();
-        Size { height, width }
+        SizeU32 { height, width }
     }
 
     pub fn at(&self, p: Point) -> Cell {

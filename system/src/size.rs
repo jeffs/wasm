@@ -14,6 +14,15 @@ pub const fn usize_to_u32(value: usize) -> u32 {
     value as u32
 }
 
+#[must_use]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub const fn f64_to_u32_saturating(value: f64) -> u32 {
+    // The lint allowances are required because of this `as` cast, but it (is
+    // the only construct that) does exactly what we want here. See also:
+    // <https://doc.rust-lang.org/reference/expressions/operator-expr.html#r-expr.as.numeric.float-as-int>
+    value as u32
+}
+
 /// # Panics
 ///
 /// Will panic on overflow.
@@ -26,6 +35,13 @@ pub const fn usize_to_u32(value: usize) -> u32 {
     output
 }
 
+/// Represents width and height as `f64`.
+#[derive(Clone, Copy, Default)]
+pub struct SizeF64 {
+    pub height: f64,
+    pub width: f64,
+}
+
 /// Represents width and height as `u32`.
 ///
 /// The W3C DOM API makes heavy use of floating point, but constraining values
@@ -33,7 +49,7 @@ pub const fn usize_to_u32(value: usize) -> u32 {
 /// canvas elements. This struct therefore represents numbers as `u32`, which
 /// (unlike `usize`) is `Into<f64>`.
 #[derive(Clone, Copy, Default)]
-pub struct Size {
+pub struct SizeU32 {
     pub height: u32,
     pub width: u32,
 }
